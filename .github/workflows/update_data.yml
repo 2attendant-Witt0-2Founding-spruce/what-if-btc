@@ -1,0 +1,35 @@
+name: Update Historical Data
+
+on:
+  schedule:
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Use a recent LTS version of Node.js
+
+      - name: Install Node.js dependencies
+        run: npm ci # 'npm ci' is preferred in CI/CD environments for consistent installs
+
+      - name: Run data processing script
+        run: node ./scripts/process-data.js # Assumes your Node.js script is named process-data.js
+        env:
+          CRYPTOCOMPARE_API_KEY: ${{ secrets.CRYPTOCOMPARE_API_KEY }}
+
+      - name: Commit and push changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore(data): auto-update historical price data"
+          file_pattern: "data/history.csv src/data/history.json"

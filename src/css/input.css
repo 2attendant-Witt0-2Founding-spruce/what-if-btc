@@ -1,0 +1,141 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { --accent-color: #FF9900; }
+
+body { 
+    background-color: #111317; 
+    font-family: 'Inter', sans-serif; 
+    color: #E0E0E0; 
+    overscroll-behavior: none; 
+}
+
+.font-roboto-mono { font-family: 'Roboto Mono', monospace; }
+.accent-color { color: var(--accent-color); }
+.glow { text-shadow: 0 0 8px rgba(255, 153, 0, 0.7); }
+
+/* Custom Slider Styles */
+input[type="range"] {
+    -webkit-appearance: none; 
+    appearance: none; 
+    width: 100%; 
+    height: 8px; 
+    background: transparent; 
+    border-radius: 5px; 
+    outline: none; 
+    transition: opacity 0.2s; 
+    cursor: pointer; 
+    position: relative; 
+    z-index: 2;
+}
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; 
+    appearance: none; 
+    width: 24px; 
+    height: 24px; 
+    background: var(--accent-color); 
+    border-radius: 50%; 
+    border: 4px solid #111317; 
+    box-shadow: 0 0 10px rgba(255, 153, 0, 0.7); 
+    margin-top: -8px;
+}
+input[type="range"]::-moz-range-thumb {
+    width: 20px; 
+    height: 20px; 
+    background: var(--accent-color); 
+    border-radius: 50%; 
+    border: 4px solid #111317; 
+    box-shadow: 0 0 10px rgba(255, 153, 0, 0.7); 
+    cursor: pointer;
+}
+.slider-track-bg {
+    position: absolute; 
+    top: 50%; 
+    left: 0; 
+    width: 100%; 
+    height: 8px; 
+    background: #333842; 
+    border-radius: 5px; 
+    transform: translateY(-50%); 
+    z-index: 1;
+}
+
+/* Investment Input Styles */
+.investment-input-wrapper {
+    display: inline-flex; 
+    align-items: center; 
+    justify-content: center; 
+    background-color: #2a2d36; 
+    border-radius: 8px; 
+    padding: 4px;
+}
+.investment-input {
+    width: 100px; 
+    background: transparent; 
+    border: none; 
+    color: white; 
+    text-align: center; 
+    font-family: 'Roboto Mono', monospace; 
+    font-size: 1.125rem; 
+    outline: none; 
+    -moz-appearance: textfield;
+}
+.investment-input::-webkit-outer-spin-button, 
+.investment-input::-webkit-inner-spin-button { 
+    -webkit-appearance: none; 
+    margin: 0; 
+}
+.investment-btn {
+    background-color: #3b3f4c; 
+    color: white; 
+    border: none; 
+    border-radius: 6px; 
+    width: 28px; 
+    height: 28px; 
+    font-size: 1.5rem; 
+    line-height: 1; 
+    display: inline-flex; 
+    align-items: center; 
+    justify-content: center; 
+    cursor: pointer; 
+    transition: background-color 0.2s;
+}
+.investment-btn:hover { background-color: #4a4f5c; }
+
+/* Donation Section */
+#donation-section {
+    transition: max-height 0.5s ease-in-out, opacity 0.5s ease-in-out; 
+    max-height: 0; 
+    overflow: hidden; 
+    opacity: 0;
+}
+#donation-section.open { 
+    max-height: 1200px;
+    opacity: 1; 
+}
+.qr-code-container {
+    width: 128px; 
+    height: 128px; 
+    background-color: #fff; 
+    border-radius: 8px; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    padding: 8px;
+}
+
+/* Pulsing Donate Button */
+@keyframes pulse-glow {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 10px rgba(255, 153, 0, 0.7);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 20px rgba(255, 153, 0, 1);
+    }
+}
+.pulsing-donate-btn {
+    animation: pulse-glow 6s infinite ease-in-out;
+}
