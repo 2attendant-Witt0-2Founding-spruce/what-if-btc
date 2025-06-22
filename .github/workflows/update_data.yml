@@ -32,4 +32,4 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore(data): auto-update historical price data"
-          file_pattern: "data/history.csv src/data/history.json"
+          file_pattern: "src/data/history.csv src/data/history.json"
