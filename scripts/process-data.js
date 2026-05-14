@@ -134,7 +134,7 @@ async function main() {
             const price = await fetchPrice(timestamp, apiKey);
             new_data.push({ date: new Date(currentDate), price: price });
         } catch (error) {
-            logger.warning(`Could not get data for ${formattedDate}: ${error.message}`);
+            logger.warn(`Could not get data for ${formattedDate}: ${error.message}`);
             // If there's a network error, stop fetching further data for now
             if (error.message.includes('Network error')) {
                  logger.error(`Stopping data fetching due to network error.`);

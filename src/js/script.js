@@ -200,7 +200,7 @@
             case 'intriguing': subtitle.textContent = TEXT_VARIANTS.subtitle.intriguing; break;
             case 'diamond_hands': mainHeadline.textContent     = TEXT_VARIANTS.mainHeadline.diamond; break;
             case 'fire_journey':  donationHeadline.textContent = TEXT_VARIANTS.donationHeadline.fire; break;
-            case 'coffee':        donationHeadline.textContent = TEXT_VARIANTES.donationHeadline.coffee; break;
+            case 'coffee':        donationHeadline.textContent = TEXT_VARIANTS.donationHeadline.coffee; break;
         }
         }
     }
