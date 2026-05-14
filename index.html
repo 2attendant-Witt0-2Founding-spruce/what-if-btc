@@ -3,22 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WhatIfBtc</title>
-    
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-VSK27SPWCV"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
 
-      gtag('config', 'G-VSK27SPWCV');
+    <title>WhatIfBtc — Calculate the Millions You Never Made</title>
+    <meta name="description" content="What if you had invested $100 in Bitcoin in 2015? Find out exactly how much you'd have today — and how badly it hurts.">
+    <meta name="keywords" content="bitcoin investment calculator, what if i bought bitcoin, bitcoin regret calculator, missed bitcoin, bitcoin historical price, btc calculator">
+    <link rel="canonical" href="https://whatifbtc.com/">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://whatifbtc.com/">
+    <meta property="og:title" content="WhatIfBtc — Calculate the Millions You Never Made">
+    <meta property="og:description" content="What if you had invested $100 in Bitcoin in 2015? Find out exactly how much you'd have today — and how badly it hurts.">
+    <meta property="og:image" content="https://whatifbtc.com/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:site_name" content="WhatIfBtc">
+    <meta property="og:locale" content="en_US">
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="WhatIfBtc — Calculate the Millions You Never Made">
+    <meta name="twitter:description" content="What if you had invested $100 in Bitcoin in 2015? Find out exactly how much you'd have today — and how badly it hurts.">
+    <meta name="twitter:image" content="https://whatifbtc.com/og-image.png">
+
+    <!-- Schema.org -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebApplication",
+          "name": "WhatIfBtc",
+          "url": "https://whatifbtc.com",
+          "description": "Bitcoin historical investment calculator. Find out how much your investment would be worth today.",
+          "applicationCategory": "FinanceApplication",
+          "operatingSystem": "Web",
+          "inLanguage": ["en", "zh"],
+          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+        },
+        {
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "What if I had invested $100 in Bitcoin in 2010?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "$100 invested in Bitcoin in 2010 would be worth millions today. Use our calculator to find the exact value for any date between 2009 and today."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How much would $1000 in Bitcoin be worth today?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "It depends on when you bought. $1000 in Bitcoin in January 2015 would be worth over $250,000 today. Use our calculator to check any date and amount."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "What was the price of Bitcoin in 2015?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Bitcoin started 2015 at around $314. By end of 2015 it was around $430. Our calculator uses daily historical prices going back to 2009."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How do I calculate Bitcoin investment returns?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Select the date you would have invested and the amount using our sliders. WhatIfBtc instantly calculates how many BTC you could have bought and what that would be worth at today's price."
+              }
+            }
+          ]
+        }
+      ]
+    }
     </script>
-    
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+    <!-- Plausible Analytics (privacy-friendly, no cookie banner needed) -->
+    <script defer data-domain="whatifbtc.com" src="https://plausible.io/js/script.js"></script>
+
+    <!-- Fonts -->
+    <link rel="preload" href="src/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="src/fonts/roboto-mono-latin.woff2" as="font" type="font/woff2" crossorigin>
     <link href="dist/output.css" rel="stylesheet">
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 </head>
 <body class="flex items-start justify-center min-h-screen p-4 overflow-hidden pt-12 md:pt-20">
 
@@ -95,9 +168,9 @@
             <div class="md:col-span-1 text-center md:text-left md:pl-8">
                 <div class="bg-gray-900/50 p-6 rounded-lg border border-gray-800 relative overflow-hidden">
                     <svg class="absolute -right-4 -bottom-4 w-32 h-32 text-white opacity-5 pointer-events-none" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.44 14.65c-.32.17-.66.3-1.02.39V18h-1.5v-.96c-.36-.08-.71-.21-1.05-.39l.34-1.36c.41.22.8.38 1.21.48v-2.88c-1.83-.5-2.2-1.92-1.46-3.21.4-.69 1.14-1.12 2-1.21V7.5h1.5v.94c.36.08.7.21 1.03.37l-.34 1.36c-.37-.19-.72-.34-1.09-.43v2.88c1.55.44 2.15 1.76 1.51 3.21-.39.87-1.25 1.41-2.2 1.54zM11.25 10.33c-.04 0-.08.01-.12.01-.32 0-.6-.18-.72-.51-.13-.34.09-.71.43-.84.23-.08.48-.13.71-.13v1.47zm1.5 3.34c0 .05-.01.09-.02.13-.26.6-1.03.83-1.63.57-.45-.18-.7-.61-.57-1.07.13-.46.54-.78 1.07-.78.34 0 .66.11.9.31v.84z"/></svg>
-                    
+
                     <div class="relative z-10">
-                        <p class="text-sm text-gray-400">Resulted</p>
+                        <p class="text-sm text-gray-400">Purchase Date</p>
                         <p id="selected-date" class="text-xl font-bold font-roboto-mono"></p>
                     </div>
                     <div class="relative z-10 mt-4">
@@ -111,12 +184,12 @@
                 </div>
             </div>
         </main>
-        
+
         <footer class="fixed bottom-0 left-0 w-full bg-black/30 backdrop-blur-sm border-t border-gray-800 z-30">
              <div id="donation-section" class="bg-[#1c1f26] p-6 text-center">
                 <h3 id="donation-headline" class="text-lg font-bold mb-2">Appreciate clean data and an open-source tool?</h3>
                 <p id="donation-subheadline" class="text-sm text-gray-400 max-w-2xl mx-auto mb-4">Support indie dev. Every satoshi helps us add more historical data sources and export options.</p>
-                
+
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
                     <div class="donation-card text-center p-3 flex flex-col items-center justify-between" data-address="bc1qn8ekrvtadknm282xvnke7t0s8qdegpc696g32j">
                         <div>
@@ -168,12 +241,13 @@
                     </div>
                 </div>
                 <div class="text-xs text-gray-500 px-4">
-                    <span>© 2025 WhatIfBtc • All calculations are for entertainment and educational purposes only and do not constitute financial advice.</span>
+                    <span>© <span id="copyright-year"></span> WhatIfBtc • All calculations are for entertainment and educational purposes only and do not constitute financial advice.</span>
                 </div>
             </div>
         </footer>
     </div>
 
+    <script>document.getElementById('copyright-year').textContent = new Date().getFullYear();</script>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="dist/script.min.js" defer></script>
 </body>

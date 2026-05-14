@@ -162,13 +162,15 @@ input[type="range"]::-moz-range-thumb {
 @keyframes pulse-glow {
     0%, 100% {
         transform: scale(1);
-        box-shadow: 0 0 10px rgba(255, 153, 0, 0.7);
+        box-shadow: 0 0 8px rgba(255, 153, 0, 0.6);
+        color: var(--accent-color);
     }
     50% {
-        transform: scale(1.05);
-        box-shadow: 0 0 20px rgba(255, 153, 0, 1);
+        transform: scale(1.08);
+        box-shadow: 0 0 28px rgba(255, 153, 0, 1), 0 0 8px rgba(255, 153, 0, 0.8);
+        color: #fff;
     }
 }
 .pulsing-donate-btn {
-    animation: pulse-glow 6s infinite ease-in-out;
+    animation: pulse-glow 2.5s infinite ease-in-out;
 }
