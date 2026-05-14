@@ -93,161 +93,225 @@
     <link rel="preload" href="fonts/roboto-mono-latin.woff2" as="font" type="font/woff2" crossorigin>
     <link href="styles/output.css" rel="stylesheet">
 </head>
-<body class="flex items-start justify-center min-h-screen p-4 overflow-hidden pt-12 md:pt-20">
+<body class="flex items-start justify-center min-h-screen p-4 pt-12 md:pt-20">
 
     <div id="loading-overlay" class="fixed inset-0 bg-[#111317] flex items-center justify-center z-50">
         <p class="text-xl">Loading historical data...</p>
     </div>
 
-    <div id="app-container" class="w-full max-w-4xl mx-auto invisible pb-40">
-        <header class="text-center mb-6">
-            <h1 id="main-headline" class="text-3xl md:text-4xl font-bold tracking-wider">WhatIfBtc</h1>
-            <p id="subtitle" class="mt-2 text-lg text-gray-400">Let's calculate the millions you never made.</p>
-            <div class="mt-4 text-lg">
-                <span>If you had invested</span>
-                <div id="investment-edit" class="investment-input-wrapper hidden">
-                    <button class="investment-btn" id="decrease-investment">-</button>
-                    <input type="number" id="investment-input" class="investment-input" value="100" min="1">
-                    <button class="investment-btn" id="increase-investment">+</button>
+    <div id="app-container" class="w-full max-w-4xl mx-auto invisible pb-8">
+        <div class="grid grid-cols-1 md:grid-cols-5 md:gap-8 mb-4 md:mb-6">
+            <header class="md:col-span-3 text-center md:text-left">
+                <h1 id="main-headline" class="text-3xl md:text-4xl font-bold tracking-wider">WhatIfBtc</h1>
+                <p id="subtitle" class="mt-2 text-lg text-gray-400">Let's calculate the millions you never made.</p>
+                <div class="mt-4 text-lg flex flex-wrap items-center justify-center md:justify-start gap-2">
+                    <span id="investment-prefix">If you had invested</span>
+                    <div id="investment-edit" class="investment-input-wrapper">
+                        <button class="investment-btn" id="decrease-investment">-</button>
+                        <input type="number" id="investment-input" class="investment-input" value="100" min="1">
+                        <button class="investment-btn" id="increase-investment">+</button>
+                    </div>
+                    <span id="investment-suffix" class="text-gray-400 hidden">/ mo</span>
+                    <span id="dca-months-count" class="hidden text-gray-500 text-sm font-roboto-mono"></span>
                 </div>
-            </div>
-        </header>
+            </header>
+        </div>
 
-        <main class="grid grid-cols-1 md:grid-cols-3 gap-8 items-center relative">
-            <div class="md:col-span-2 space-y-12 relative">
+        <main class="grid grid-cols-1 md:grid-cols-5 gap-6 md:gap-8 items-start relative">
+            <div class="md:col-span-3 relative order-2 md:order-1">
                 <svg id="connector-svg" class="absolute top-0 left-0 w-full h-full" style="pointer-events: none; z-index: 10;">
                     <path id="connector-path" d="" stroke="var(--accent-color)" stroke-width="2.5" fill="none" stroke-linecap="round" style="filter: drop-shadow(0 0 5px rgba(255,153,0,0.7));"></path>
                 </svg>
 
+                <div class="space-y-8 md:space-y-12">
+
+                <div class="flex items-center justify-between mb-4">
+                    <div class="mode-toggle">
+                        <button class="mode-btn active" data-mode="lump">Lump Sum</button>
+                        <button class="mode-btn" data-mode="dca">Monthly DCA</button>
+                        <button class="mode-btn" data-mode="trade">Trade</button>
+                    </div>
+                </div>
+
+                <div class="notable-dates-wrapper mb-6">
+                    <button id="pills-prev" class="pill-arrow pill-arrow-left" aria-label="Scroll left">‹</button>
+                    <div id="notable-dates" class="notable-dates-scroll"></div>
+                    <button id="pills-next" class="pill-arrow pill-arrow-right" aria-label="Scroll right">›</button>
+                </div>
+
+                <div id="trade-tabs" class="hidden">
+                    <div class="flex items-center gap-3">
+                        <button class="trade-tab-btn active" data-tab="buy">
+                            <span style="color:#FF9900">●</span>
+                            <span>Bought</span>
+                            <span id="trade-buy-date-label" class="text-gray-500 text-xs ml-1"></span>
+                        </button>
+                        <span class="text-gray-700">→</span>
+                        <button class="trade-tab-btn" data-tab="sell">
+                            <span style="color:#60a5fa">●</span>
+                            <span>Sold</span>
+                            <span id="trade-sell-date-label" class="text-gray-500 text-xs ml-1"></span>
+                        </button>
+                    </div>
+                </div>
+
                 <div id="sliders-container" class="relative">
-                    <div class="relative z-20">
-                        <div class="flex justify-between items-end font-roboto-mono text-sm text-gray-400">
-                            <span id="year-min-label"></span>
-                            <div class="text-center">
-                                <span>Year</span>
-                                <span id="year-value-display" class="block font-bold text-base"></span>
+                    <div id="buy-sliders">
+                        <div class="relative z-20">
+                            <div class="flex justify-between items-end font-roboto-mono text-sm text-gray-400">
+                                <span id="year-min-label"></span>
+                                <div class="text-center">
+                                    <span>Year</span>
+                                    <span id="year-value-display" class="block font-bold text-base"></span>
+                                </div>
+                                <span id="year-max-label"></span>
                             </div>
-                            <span id="year-max-label"></span>
+                            <div class="relative">
+                                <div id="year-track-bg" class="slider-track-bg"></div>
+                                <input type="range" id="year-slider">
+                            </div>
                         </div>
-                        <div class="relative">
-                            <div id="year-track-bg" class="slider-track-bg"></div>
-                            <input type="range" id="year-slider">
+                        <div class="relative z-20 mt-12">
+                             <div class="flex justify-between items-end font-roboto-mono text-sm text-gray-400">
+                                <span>1</span>
+                                <div class="text-center">
+                                    <span>Month</span>
+                                    <span id="month-name-display" class="block font-bold accent-color text-base"></span>
+                                </div>
+                                <span>12</span>
+                            </div>
+                            <div class="relative">
+                                <div id="month-track-bg" class="slider-track-bg"></div>
+                                <input type="range" id="month-slider" min="1" max="12">
+                            </div>
+                        </div>
+                        <div id="day-slider-row" class="relative z-20 mt-12">
+                             <div class="flex justify-between items-end font-roboto-mono text-sm text-gray-400">
+                                <span>1</span>
+                                <div class="text-center">
+                                    <span>Day</span>
+                                    <span id="day-value-display" class="block font-bold text-base"></span>
+                                </div>
+                                <span id="day-max-label"></span>
+                            </div>
+                            <div class="relative">
+                                <div id="day-track-bg" class="slider-track-bg"></div>
+                                <input type="range" id="day-slider" min="1" max="31">
+                            </div>
                         </div>
                     </div>
-                    <div class="relative z-20 mt-12">
-                         <div class="flex justify-between items-end font-roboto-mono text-sm text-gray-400">
-                            <span>1</span>
-                            <div class="text-center">
-                                <span>Month</span>
-                                <span id="month-name-display" class="block font-bold accent-color text-base"></span>
+
+                    <div id="sell-sliders-panel" class="hidden sliders-sell">
+                        <div class="relative z-20">
+                            <div class="flex justify-between items-end font-roboto-mono text-sm text-gray-400">
+                                <span id="sell-year-min-label"></span>
+                                <div class="text-center">
+                                    <span>Year</span>
+                                    <span id="sell-year-value-display" class="block font-bold text-base"></span>
+                                </div>
+                                <span id="sell-year-max-label"></span>
                             </div>
-                            <span>12</span>
-                        </div>
-                        <div class="relative">
-                            <div id="month-track-bg" class="slider-track-bg"></div>
-                            <input type="range" id="month-slider" min="1" max="12">
-                        </div>
-                    </div>
-                    <div class="relative z-20 mt-12">
-                         <div class="flex justify-between items-end font-roboto-mono text-sm text-gray-400">
-                            <span>1</span>
-                            <div class="text-center">
-                                <span>Day</span>
-                                <span id="day-value-display" class="block font-bold text-base"></span>
+                            <div class="relative">
+                                <div id="sell-year-track-bg" class="slider-track-bg"></div>
+                                <input type="range" id="sell-year-slider">
                             </div>
-                            <span id="day-max-label"></span>
                         </div>
-                        <div class="relative">
-                            <div id="day-track-bg" class="slider-track-bg"></div>
-                            <input type="range" id="day-slider" min="1" max="31">
+                        <div class="relative z-20 mt-12">
+                            <div class="flex justify-between items-end font-roboto-mono text-sm text-gray-400">
+                                <span>1</span>
+                                <div class="text-center">
+                                    <span>Month</span>
+                                    <span id="sell-month-name-display" class="block font-bold text-base sell-accent"></span>
+                                </div>
+                                <span>12</span>
+                            </div>
+                            <div class="relative">
+                                <div id="sell-month-track-bg" class="slider-track-bg"></div>
+                                <input type="range" id="sell-month-slider" min="1" max="12">
+                            </div>
+                        </div>
+                        <div class="relative z-20 mt-12">
+                            <div class="flex justify-between items-end font-roboto-mono text-sm text-gray-400">
+                                <span>1</span>
+                                <div class="text-center">
+                                    <span>Day</span>
+                                    <span id="sell-day-value-display" class="block font-bold text-base"></span>
+                                </div>
+                                <span id="sell-day-max-label">31</span>
+                            </div>
+                            <div class="relative">
+                                <div id="sell-day-track-bg" class="slider-track-bg"></div>
+                                <input type="range" id="sell-day-slider" min="1" max="31">
+                            </div>
                         </div>
                     </div>
                 </div>
+
+                </div><!-- end space-y wrapper -->
             </div>
 
-            <div class="md:col-span-1 text-center md:text-left md:pl-8">
-                <div class="bg-gray-900/50 p-6 rounded-lg border border-gray-800 relative overflow-hidden">
-                    <svg class="absolute -right-4 -bottom-4 w-32 h-32 text-white opacity-5 pointer-events-none" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.44 14.65c-.32.17-.66.3-1.02.39V18h-1.5v-.96c-.36-.08-.71-.21-1.05-.39l.34-1.36c.41.22.8.38 1.21.48v-2.88c-1.83-.5-2.2-1.92-1.46-3.21.4-.69 1.14-1.12 2-1.21V7.5h1.5v.94c.36.08.7.21 1.03.37l-.34 1.36c-.37-.19-.72-.34-1.09-.43v2.88c1.55.44 2.15 1.76 1.51 3.21-.39.87-1.25 1.41-2.2 1.54zM11.25 10.33c-.04 0-.08.01-.12.01-.32 0-.6-.18-.72-.51-.13-.34.09-.71.43-.84.23-.08.48-.13.71-.13v1.47zm1.5 3.34c0 .05-.01.09-.02.13-.26.6-1.03.83-1.63.57-.45-.18-.7-.61-.57-1.07.13-.46.54-.78 1.07-.78.34 0 .66.11.9.31v.84z"/></svg>
-
+            <div id="right-col" class="md:col-span-2 text-center md:text-left md:pl-6 order-1 md:order-2 flex flex-col overflow-hidden">
+                <div id="result-card" class="bg-gray-900/50 p-6 rounded-lg border border-gray-800 relative h-full">
                     <div class="relative z-10">
-                        <p class="text-sm text-gray-400">Purchase Date</p>
+                        <p id="date-label" class="text-sm text-gray-400">Purchase Date</p>
                         <p id="selected-date" class="text-xl font-bold font-roboto-mono"></p>
                     </div>
                     <div class="relative z-10 mt-4">
-                        <p class="text-sm text-gray-400">Initial Investment</p>
+                        <p id="investment-label" class="text-sm text-gray-400">Initial Investment</p>
                         <p id="initial-investment" class="text-xl font-bold font-roboto-mono">$100.00</p>
                     </div>
+                    <div id="sell-date-row" class="hidden relative z-10 mt-4">
+                        <p class="text-sm text-gray-400">Sold On</p>
+                        <p id="sell-date-display" class="text-xl font-bold font-roboto-mono"></p>
+                    </div>
                     <div class="relative z-10 mt-4">
-                        <p class="text-sm text-gray-400">It Would Be Worth</p>
+                        <p id="value-label" class="text-sm text-gray-400">It Would Be Worth</p>
                         <p id="current-value" class="font-bold font-roboto-mono accent-color glow break-words" style="font-size: 2rem; transition: font-size 0.3s ease;"></p>
+                        <p id="context-caption" class="context-caption"></p>
+                        <p id="trade-disclaimer" class="hidden text-xs text-gray-600 italic mt-1">* fees not included</p>
+                    </div>
+                    <div class="relative z-10 mt-4 flex items-center gap-3">
+                        <button class="share-btn text-xs font-roboto-mono text-gray-500 hover:text-gray-300 transition-colors">↗ Share</button>
+                        <span id="share-feedback" class="text-xs font-roboto-mono text-green-400 opacity-0 transition-opacity"></span>
+                    </div>
+                </div>
+
+                <!-- DCA mode: full-height chart panel -->
+                <div id="dca-chart-panel" class="hidden flex-1 flex flex-col">
+                    <div class="bg-gray-900/50 p-4 rounded-lg border border-gray-800 flex flex-col h-full">
+                        <div class="mb-3">
+                            <p class="text-sm text-gray-400">Final Capital</p>
+                            <p id="dca-final-value" class="font-bold font-roboto-mono accent-color glow break-words" style="font-size:1.8rem; transition:font-size 0.3s ease;"></p>
+                            <p id="dca-context-caption" class="context-caption"></p>
+                        </div>
+                        <p id="dca-invested-display" class="text-xs text-gray-500 font-roboto-mono mb-3"></p>
+                        <div class="flex-1 min-h-0">
+                            <svg id="dca-chart-svg" class="w-full h-full" viewBox="0 0 100 60" preserveAspectRatio="none">
+                                <defs>
+                                    <linearGradient id="dca-grad" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stop-color="#FF9900" stop-opacity="0.55"/>
+                                        <stop offset="100%" stop-color="#FF9900" stop-opacity="0.03"/>
+                                    </linearGradient>
+                                </defs>
+                                <path id="dca-chart-area" fill="url(#dca-grad)" d=""/>
+                                <path id="dca-chart-line" fill="none" stroke="#FF9900" stroke-width="0.8" d=""/>
+                                <path id="dca-invested-line" fill="none" stroke="rgba(96,165,250,0.45)" stroke-width="0.7" stroke-dasharray="4,3" d=""/>
+                            </svg>
+                        </div>
+                        <div class="mt-2 pt-2 border-t border-gray-800 flex justify-between items-center text-xs font-roboto-mono">
+                            <span id="dca-months-display" class="text-gray-500"></span>
+                            <div class="flex items-center gap-3">
+                                <button class="share-btn text-gray-500 hover:text-gray-300 transition-colors">↗ Share</button>
+                                <span id="dca-growth-display" class="accent-color"></span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </main>
 
-        <footer class="fixed bottom-0 left-0 w-full bg-black/30 backdrop-blur-sm border-t border-gray-800 z-30">
-             <div id="donation-section" class="bg-[#1c1f26] p-6 text-center">
-                <h3 id="donation-headline" class="text-lg font-bold mb-2">Appreciate clean data and an open-source tool?</h3>
-                <p id="donation-subheadline" class="text-sm text-gray-400 max-w-2xl mx-auto mb-4">Support indie dev. Every satoshi helps us add more historical data sources and export options.</p>
-
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
-                    <div class="donation-card text-center p-3 flex flex-col items-center justify-between" data-address="bc1qn8ekrvtadknm282xvnke7t0s8qdegpc696g32j">
-                        <div>
-                            <div class="qr-code-container mx-auto"></div>
-                            <p class="font-bold mt-2 text-sm">Bitcoin</p>
-                            <p class="font-roboto-mono text-xs mt-1 text-gray-400 break-all">bc1q...g32j</p>
-                        </div>
-                        <button class="copy-btn text-xs mt-2 bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded-md transition-colors w-20">Copy</button>
-                    </div>
-                    <div class="donation-card text-center p-3 flex flex-col items-center justify-between" data-address="0xA0e6750f49616f124736Ec84B04c84884855a98A">
-                        <div>
-                           <div class="qr-code-container mx-auto"></div>
-                            <p class="font-bold mt-2 text-sm">EVM Networks</p>
-                            <p class="font-roboto-mono text-xs mt-1 text-gray-400 break-all">0xA0...a98A</p>
-                            <p class="text-xs text-gray-500 mt-1">ETH, MATIC, USDT (ERC-20, BEP-20)</p>
-                        </div>
-                        <button class="copy-btn text-xs mt-2 bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded-md transition-colors w-20">Copy</button>
-                    </div>
-                    <div class="donation-card text-center p-3 flex flex-col items-center justify-between" data-address="THAcQXrm9TNjVJTt7Ai9UkSJtTM5N7Apnv">
-                        <div>
-                           <div class="qr-code-container mx-auto"></div>
-                           <p class="font-bold mt-2 text-sm">Tether (Tron)</p>
-                           <p class="font-roboto-mono text-xs mt-1 text-gray-400 break-all">THAc...pnv</p>
-                           <p class="text-xs text-gray-500 mt-1">USDT (TRC-20)</p>
-                        </div>
-                        <button class="copy-btn text-xs mt-2 bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded-md transition-colors w-20">Copy</button>
-                    </div>
-                    <div class="donation-card text-center p-3 flex flex-col items-center justify-between" data-address="HfXLFRBZkEkqig6pZRzXactNJBoHY1qHrTCRU3Q2ZBT8">
-                        <div>
-                           <div class="qr-code-container mx-auto"></div>
-                           <p class="font-bold mt-2 text-sm">Solana</p>
-                           <p class="font-roboto-mono text-xs mt-1 text-gray-400 break-all">HfXL...BT8</p>
-                           <p class="text-xs text-gray-500 mt-1">SOL</p>
-                        </div>
-                        <button class="copy-btn text-xs mt-2 bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded-md transition-colors w-20">Copy</button>
-                    </div>
-                </div>
-
-                 <p id="copy-feedback" class="text-center text-sm accent-color mt-4 opacity-0 transition-opacity">Address copied!</p>
-            </div>
-            <div class="w-full max-w-4xl mx-auto p-4 flex flex-col items-center text-center text-sm">
-                <div class="w-full flex flex-col md:flex-row justify-between items-center mb-8">
-                    <div id="summary-bar" class="flex space-x-4 md:space-x-8 font-roboto-mono">
-                        <p><span>Days Passed</span>: <span id="days-passed" class="font-bold">0</span></p>
-                        <p><span>Growth</span>: <span id="growth" class="font-bold accent-color">+0.00%</span></p>
-                    </div>
-                    <div class="mt-2 md:mt-0">
-                        <button id="donate-btn" class="font-bold accent-color glow transition pulsing-donate-btn px-4 py-2 rounded-md">Donate</button>
-                    </div>
-                </div>
-                <div class="text-xs text-gray-500 px-4">
-                    <span>© <span id="copyright-year"></span> WhatIfBtc • All calculations are for entertainment and educational purposes only and do not constitute financial advice.</span>
-                </div>
-            </div>
-        </footer>
     </div>
 
-    <script>document.getElementById('copyright-year').textContent = new Date().getFullYear();</script>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="scripts/script.min.js" defer></script>
 </body>

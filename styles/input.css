@@ -158,6 +158,182 @@ input[type="range"]::-moz-range-thumb {
     padding: 8px;
 }
 
+/* Mode Toggle */
+.mode-toggle {
+    display: flex;
+    gap: 3px;
+    background: #1c1f26;
+    border-radius: 8px;
+    padding: 3px;
+}
+.mode-btn {
+    padding: 4px 14px;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-family: 'Roboto Mono', monospace;
+    color: #6b7280;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+}
+.mode-btn.active {
+    background: #333842;
+    color: #e0e0e0;
+}
+#day-slider-row {
+    transition: opacity 0.2s;
+}
+#day-slider-row.hidden-row {
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+    margin-top: 0 !important;
+    max-height: 0;
+    overflow: hidden;
+}
+
+/* Scale Badge */
+.scale-badge {
+    display: inline-block;
+    font-size: 0.85rem;
+    color: #6b7280;
+    font-family: 'Roboto Mono', monospace;
+    vertical-align: middle;
+}
+
+/* Context Caption */
+.context-caption {
+    margin-top: 8px;
+    font-size: 0.78rem;
+    color: #6b7280;
+    font-style: italic;
+    min-height: 1.2em;
+    transition: opacity 0.3s;
+}
+
+/* Notable Dates Pills */
+.notable-dates-wrapper {
+    position: relative;
+}
+.notable-dates-wrapper::before,
+.notable-dates-wrapper::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 48px;
+    pointer-events: none;
+    z-index: 1;
+    transition: opacity 0.2s;
+}
+.notable-dates-wrapper::before {
+    left: 0;
+    background: linear-gradient(to left, transparent, #111317);
+    opacity: 0;
+}
+.notable-dates-wrapper.can-scroll-left::before { opacity: 1; }
+.notable-dates-wrapper::after {
+    right: 0;
+    background: linear-gradient(to right, transparent, #111317);
+}
+.notable-dates-scroll {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+}
+.notable-dates-scroll::-webkit-scrollbar { display: none; }
+.notable-pill {
+    flex-shrink: 0;
+    padding: 4px 12px;
+    border-radius: 999px;
+    border: 1px solid #333842;
+    background: #1c1f26;
+    color: #9ca3af;
+    font-size: 0.75rem;
+    font-family: 'Roboto Mono', monospace;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    white-space: nowrap;
+}
+.notable-pill:hover {
+    border-color: var(--accent-color);
+    color: #e0e0e0;
+}
+.notable-pill.active {
+    border-color: var(--accent-color);
+    background: rgba(255, 153, 0, 0.1);
+    color: var(--accent-color);
+}
+
+/* Carousel Arrows */
+.pill-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+    background: rgba(28, 31, 38, 0.92);
+    border: 1px solid #333842;
+    color: #6b7280;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    font-size: 1rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s, color 0.15s, border-color 0.15s;
+}
+.pill-arrow:hover {
+    color: #e0e0e0;
+    border-color: var(--accent-color);
+}
+.pill-arrow-left  { left: -4px; }
+.pill-arrow-right { right: -4px; }
+.notable-dates-wrapper.can-scroll-left  .pill-arrow-left  { opacity: 1; pointer-events: auto; }
+.notable-dates-wrapper.can-scroll-right .pill-arrow-right { opacity: 1; pointer-events: auto; }
+
+/* Sell sliders — blue accent */
+.sell-accent { color: #60a5fa; }
+.sliders-sell input[type="range"]::-webkit-slider-thumb {
+    background: #60a5fa;
+    box-shadow: 0 0 10px rgba(96, 165, 250, 0.7);
+}
+.sliders-sell input[type="range"]::-moz-range-thumb {
+    background: #60a5fa;
+    box-shadow: 0 0 10px rgba(96, 165, 250, 0.7);
+}
+
+/* Trade Buy/Sold Tabs */
+.trade-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 14px;
+    border-radius: 6px;
+    border: 1px solid #333842;
+    background: #1c1f26;
+    color: #6b7280;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    white-space: nowrap;
+}
+.trade-tab-btn.active {
+    background: #333842;
+    color: #e0e0e0;
+    border-color: #4a4f5c;
+}
+
 /* Pulsing Donate Button */
 @keyframes pulse-glow {
     0%, 100% {
