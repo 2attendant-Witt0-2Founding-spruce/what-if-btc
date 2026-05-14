@@ -15,8 +15,8 @@ const logger = {
 };
 
 // --- Constants ---
-const CSV_PATH = path.join('src', 'data', 'history.csv');
-const JSON_PATH = path.join('src', 'data', 'history.json');
+const CSV_PATH = path.join('dates', 'history.csv');
+const JSON_PATH = path.join('dates', 'history.json');
 const API_URL = "https://min-api.cryptocompare.com/data/v2/histoday";
 
 /**

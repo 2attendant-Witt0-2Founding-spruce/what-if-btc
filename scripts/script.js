@@ -159,7 +159,7 @@
     // --- DATA LOADING ---
     async function loadPriceData() {
         try {
-        const res  = await fetch('src/data/history.json');
+        const res  = await fetch('dates/history.json');
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         priceData      = new Map(data.map(i=>[i.date,i.price]));

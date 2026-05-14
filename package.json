@@ -4,10 +4,10 @@
   "description": "A 'what if' Bitcoin investment calculator.",
   "main": "index.js",
   "scripts": {
-    "build:css": "npx tailwindcss -i ./src/css/input.css -o ./dist/output.css --minify",
-    "build:js": "npx terser ./src/js/script.js -o ./dist/script.min.js -c -m",
+    "build:css": "npx tailwindcss -i ./styles/input.css -o ./styles/output.css --minify",
+    "build:js": "npx terser ./scripts/script.js -o ./scripts/script.min.js -c -m",
     "build": "npm run build:css && npm run build:js",
-    "update-data": "node ./scripts/process-data.js"
+    "update-data": "node ./.scripts/process-data.js"
   },
   "keywords": [
     "bitcoin",
