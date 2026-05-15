@@ -105,6 +105,10 @@
                 <h1 id="main-headline" class="text-3xl md:text-4xl font-bold tracking-wider">WhatIfBtc</h1>
                 <p id="subtitle" class="mt-2 text-lg text-gray-400">Let's calculate the millions you never made.</p>
                 <p id="subtitle-hint" class="hidden mt-1 text-xs text-gray-600 font-roboto-mono">drag the sliders below to pick a date →</p>
+                <div id="anniversary-banner" class="hidden anniversary-strip mt-3">
+                    <span id="anniversary-text"></span>
+                    <button id="anniversary-dismiss" aria-label="Dismiss">✕</button>
+                </div>
                 <div class="mt-4 text-lg flex flex-wrap items-center justify-center md:justify-start gap-2">
                     <span id="investment-prefix">If you had invested</span>
                     <div id="investment-edit" class="investment-input-wrapper">
@@ -120,8 +124,8 @@
 
         <main class="grid grid-cols-1 md:grid-cols-5 gap-6 md:gap-8 items-start relative">
             <div class="md:col-span-3 relative order-2 md:order-1">
-                <svg id="connector-svg" class="absolute top-0 left-0 w-full h-full" style="pointer-events: none; z-index: 10;">
-                    <path id="connector-path" d="" stroke="var(--accent-color)" stroke-width="2.5" fill="none" stroke-linecap="round" style="filter: drop-shadow(0 0 5px rgba(255,153,0,0.7));"></path>
+                <svg id="connector-svg" class="absolute top-0 left-0 w-full h-full">
+                    <path id="connector-path" d="" stroke="var(--accent-color)" stroke-width="2.5" fill="none" stroke-linecap="round"></path>
                 </svg>
 
                 <div class="space-y-8 md:space-y-12">
@@ -130,8 +134,7 @@
                     <div class="mode-toggle">
                         <button class="mode-btn active" data-mode="lump">Lump Sum</button>
                         <button class="mode-btn" data-mode="dca">Monthly DCA</button>
-                        <button class="mode-btn" data-mode="trade">Trade</button>
-                        <button class="mode-btn" data-mode="panic">Panic vs Hold</button>
+                        <button class="mode-btn" data-mode="trade">What if I sold?</button>
                     </div>
                 </div>
 
@@ -144,13 +147,13 @@
                 <div id="trade-tabs" class="hidden">
                     <div class="flex items-center gap-3">
                         <button class="trade-tab-btn active" data-tab="buy">
-                            <span style="color:#FF9900">●</span>
+                            <span class="tab-dot-buy">●</span>
                             <span>Bought</span>
                             <span id="trade-buy-date-label" class="text-gray-500 text-xs ml-1"></span>
                         </button>
                         <span class="text-gray-700">→</span>
                         <button class="trade-tab-btn" data-tab="sell">
-                            <span style="color:#60a5fa">●</span>
+                            <span class="tab-dot-sell">●</span>
                             <span>Sold</span>
                             <span id="trade-sell-date-label" class="text-gray-500 text-xs ml-1"></span>
                         </button>
@@ -170,7 +173,7 @@
                             </div>
                             <div class="relative">
                                 <div id="year-track-bg" class="slider-track-bg"></div>
-                                <input type="range" id="year-slider">
+                                <input type="range" id="year-slider" aria-label="Year">
                             </div>
                         </div>
                         <div class="relative z-20 mt-12">
@@ -184,7 +187,7 @@
                             </div>
                             <div class="relative">
                                 <div id="month-track-bg" class="slider-track-bg"></div>
-                                <input type="range" id="month-slider" min="1" max="12">
+                                <input type="range" id="month-slider" min="1" max="12" aria-label="Month">
                             </div>
                         </div>
                         <div id="day-slider-row" class="relative z-20 mt-12">
@@ -194,11 +197,10 @@
                                     <span>Day</span>
                                     <span id="day-value-display" class="block font-bold text-base accent-color"></span>
                                 </div>
-                                <span id="day-max-label"></span>
                             </div>
                             <div class="relative">
                                 <div id="day-track-bg" class="slider-track-bg"></div>
-                                <input type="range" id="day-slider" min="1" max="31">
+                                <input type="range" id="day-slider" min="1" max="31" aria-label="Day">
                             </div>
                         </div>
                     </div>
@@ -215,7 +217,7 @@
                             </div>
                             <div class="relative">
                                 <div id="sell-year-track-bg" class="slider-track-bg"></div>
-                                <input type="range" id="sell-year-slider">
+                                <input type="range" id="sell-year-slider" aria-label="Sell year">
                             </div>
                         </div>
                         <div class="relative z-20 mt-12">
@@ -229,7 +231,7 @@
                             </div>
                             <div class="relative">
                                 <div id="sell-month-track-bg" class="slider-track-bg"></div>
-                                <input type="range" id="sell-month-slider" min="1" max="12">
+                                <input type="range" id="sell-month-slider" min="1" max="12" aria-label="Sell month">
                             </div>
                         </div>
                         <div class="relative z-20 mt-12">
@@ -239,11 +241,10 @@
                                     <span>Day</span>
                                     <span id="sell-day-value-display" class="block font-bold text-base"></span>
                                 </div>
-                                <span id="sell-day-max-label">31</span>
                             </div>
                             <div class="relative">
                                 <div id="sell-day-track-bg" class="slider-track-bg"></div>
-                                <input type="range" id="sell-day-slider" min="1" max="31">
+                                <input type="range" id="sell-day-slider" min="1" max="31" aria-label="Sell day">
                             </div>
                         </div>
                     </div>
@@ -251,10 +252,6 @@
 
                 </div><!-- end space-y wrapper -->
 
-                <div id="panic-events-section" class="hidden mt-6">
-                    <p class="text-xs text-gray-600 font-roboto-mono mb-3 tracking-wider">→ you panic-sold during</p>
-                    <div id="panic-events" class="flex flex-wrap gap-2"></div>
-                </div>
             </div>
 
             <div id="right-col" class="md:col-span-2 text-center md:text-left md:pl-6 order-1 md:order-2 flex flex-col overflow-hidden">
@@ -263,67 +260,25 @@
                         <p id="date-label" class="text-sm text-gray-400">Purchase Date</p>
                         <p id="selected-date" class="text-xl font-bold font-roboto-mono"></p>
                     </div>
-                    <div class="relative z-10 mt-4">
+                    <div class="relative z-10 mt-6">
                         <p id="investment-label" class="text-sm text-gray-400">Initial Investment</p>
                         <p id="initial-investment" class="text-xl font-bold font-roboto-mono">$100.00</p>
                     </div>
-                    <div id="sell-date-row" class="hidden relative z-10 mt-4">
+                    <div id="sell-date-row" class="hidden relative z-10 mt-6">
                         <p class="text-sm text-gray-400">Sold On</p>
                         <p id="sell-date-display" class="text-xl font-bold font-roboto-mono"></p>
                     </div>
-                    <div class="relative z-10 mt-4">
+                    <div class="relative z-10 mt-6">
                         <p id="value-label" class="text-sm text-gray-400">It Would Be Worth</p>
-                        <p id="current-value" class="font-bold font-roboto-mono accent-color glow break-words" style="font-size: 2rem; transition: font-size 0.3s ease;"></p>
+                        <p id="current-value" class="font-bold font-roboto-mono accent-color glow break-words"></p>
                         <p id="context-caption" class="context-caption"></p>
                         <p id="trade-disclaimer" class="hidden text-xs text-gray-600 italic mt-1">* fees not included</p>
+                        <p class="result-disclaimer">For educational purposes only. Not financial advice.</p>
                     </div>
-                    <div class="relative z-10 mt-4 flex items-center gap-3">
-                        <button class="share-btn text-xs font-roboto-mono text-gray-500 hover:text-gray-300 transition-colors">↗ Share</button>
+                    <div class="relative z-10 mt-6 flex items-center gap-3">
+                        <button class="share-btn text-xs font-roboto-mono text-gray-500 hover:text-gray-300 transition-colors"><span class="share-arrow">↗</span> Share</button>
                         <span id="share-feedback" class="text-xs font-roboto-mono text-green-400 opacity-0 transition-opacity"></span>
-                    </div>
-                    <div id="referral-section" class="hidden mt-3 pt-3 border-t border-gray-800">
-                        <p class="text-xs text-gray-600 font-roboto-mono mb-2">Ready to start? →</p>
-                        <div class="flex flex-wrap gap-2">
-                            <a href="https://coinbase.com/join/whatifbtc" target="_blank" rel="noopener sponsored" class="referral-link">Coinbase</a>
-                            <a href="https://accounts.binance.com/register?ref=WHATIFBTC" target="_blank" rel="noopener sponsored" class="referral-link">Binance</a>
-                            <a href="https://www.kraken.com" target="_blank" rel="noopener sponsored" class="referral-link">Kraken</a>
-                        </div>
-                        <p class="text-xs text-gray-700 mt-2 font-roboto-mono">affiliate links — help keep this free</p>
-                    </div>
-                </div>
-
-                <!-- Panic vs Hold mode panel -->
-                <div id="panic-panel" class="hidden bg-gray-900/50 rounded-lg border border-gray-800 overflow-hidden">
-                    <div class="px-5 pt-4 pb-3 border-b border-gray-800">
-                        <p class="text-xs text-gray-500 font-roboto-mono">Bought on</p>
-                        <p id="panic-buy-date" class="text-base font-bold font-roboto-mono mt-0.5"></p>
-                    </div>
-                    <div id="panic-data">
-                        <div class="grid grid-cols-2 divide-x divide-gray-800">
-                            <div class="p-5">
-                                <p class="text-xs font-roboto-mono text-red-400 tracking-wider mb-1">PANIC SOLD</p>
-                                <p id="panic-event-label" class="text-xs text-gray-600 mb-4"></p>
-                                <p id="panic-sell-value" class="font-bold font-roboto-mono text-red-400" style="font-size:1.4rem;"></p>
-                                <p id="panic-sell-growth" class="text-xs text-gray-500 font-roboto-mono mt-1"></p>
-                            </div>
-                            <div class="p-5">
-                                <p class="text-xs font-roboto-mono accent-color tracking-wider mb-1">IF HELD TODAY</p>
-                                <p class="text-xs text-gray-600 mb-4">Current price</p>
-                                <p id="panic-hold-value" class="font-bold font-roboto-mono accent-color glow" style="font-size:1.4rem;"></p>
-                                <p id="panic-hold-growth" class="text-xs text-gray-500 font-roboto-mono mt-1"></p>
-                            </div>
-                        </div>
-                        <div class="px-5 py-3 bg-gray-900/40 border-t border-gray-800">
-                            <p class="text-xs text-gray-600 font-roboto-mono">cost of panic</p>
-                            <p id="panic-cost" class="font-bold font-roboto-mono text-red-400 mt-0.5" style="font-size:1.5rem;"></p>
-                        </div>
-                    </div>
-                    <div id="panic-error" class="hidden px-5 py-4 text-sm text-gray-500 font-roboto-mono italic">
-                        This crash happened before your buy date — pick an earlier date.
-                    </div>
-                    <div class="px-5 pb-4 pt-2 flex items-center gap-3">
-                        <button class="share-btn text-xs font-roboto-mono text-gray-500 hover:text-gray-300 transition-colors">↗ Share</button>
-                        <span id="share-feedback-panic" class="text-xs font-roboto-mono text-green-400 opacity-0 transition-opacity"></span>
+                        <button id="donate-btn" class="donate-btn text-xs font-roboto-mono transition-colors ml-auto"><span class="donate-heart">♥</span> Support</button>
                     </div>
                 </div>
 
@@ -332,7 +287,7 @@
                     <div class="bg-gray-900/50 p-4 rounded-lg border border-gray-800 flex flex-col h-full">
                         <div class="mb-3">
                             <p class="text-sm text-gray-400">Final Capital</p>
-                            <p id="dca-final-value" class="font-bold font-roboto-mono accent-color glow break-words" style="font-size:1.8rem; transition:font-size 0.3s ease;"></p>
+                            <p id="dca-final-value" class="font-bold font-roboto-mono accent-color glow break-words"></p>
                             <p id="dca-context-caption" class="context-caption"></p>
                         </div>
                         <p id="dca-invested-display" class="text-xs text-gray-500 font-roboto-mono mb-3"></p>
@@ -352,7 +307,8 @@
                         <div class="mt-2 pt-2 border-t border-gray-800 flex justify-between items-center text-xs font-roboto-mono">
                             <span id="dca-months-display" class="text-gray-500"></span>
                             <div class="flex items-center gap-3">
-                                <button class="share-btn text-gray-500 hover:text-gray-300 transition-colors">↗ Share</button>
+                                <button class="share-btn text-gray-500 hover:text-gray-300 transition-colors"><span class="share-arrow">↗</span> Share</button>
+                                <span id="share-feedback-dca" class="text-xs font-roboto-mono text-green-400 opacity-0 transition-opacity"></span>
                                 <span id="dca-growth-display" class="accent-color"></span>
                             </div>
                         </div>
@@ -361,6 +317,10 @@
             </div>
         </main>
 
+        <footer class="site-footer">
+            <p>WhatIfBtc is a historical calculator for educational and entertainment purposes only. It does not constitute financial advice, investment recommendations, or an offer to buy or sell any asset. Past performance is not indicative of future results. All figures are estimates based on historical price data and may not be accurate. Always do your own research before making any financial decisions.</p>
+        </footer>
+
     </div>
 
     <div id="storage-toast" class="storage-toast hidden">
@@ -368,7 +328,26 @@
         <button id="storage-toast-dismiss" aria-label="Dismiss">✕</button>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <div id="cookie-banner" class="cookie-banner hidden">
+        <p class="cookie-banner-text">We use Google Analytics to understand how people find this tool.</p>
+        <button id="cookie-accept" class="cookie-btn">OK</button>
+    </div>
+
+    <div id="donate-modal" class="donate-modal hidden" role="dialog" aria-modal="true" aria-label="Support WhatIfBtc">
+        <div class="donate-modal-backdrop"></div>
+        <div class="donate-modal-box">
+            <div class="donate-modal-header">
+                <span class="donate-modal-title"><span class="donate-heart">♥</span> Support WhatIfBtc</span>
+                <button id="donate-modal-close" class="donate-modal-close" aria-label="Close">✕</button>
+            </div>
+            <div class="donate-modal-body">
+                <div class="donate-coin-tabs"></div>
+                <p class="donate-thanks">thank you ♥</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous"></script>
     <script src="scripts/script.min.js" defer></script>
 </body>
 </html>

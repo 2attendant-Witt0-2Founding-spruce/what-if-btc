@@ -1,12 +1,10 @@
-// script.js
-// URL params:    ?amount=150&date=2013-07-10&mode=trade&sell=2021-11&utm_campaign=coffee
-// Live edit:     #investment-input and ± buttons stay in sync
-// Modes:         lump, dca, trade
-// Donate panel:  toggles with #donate-btn
+// URL params: ?amount=150&date=2013-07-10&mode=trade&sell=2021-11&utm_campaign=pizza-day
+// Campaigns:  pizza-day | covid-dip | halving-2020 | halving-2024 | ftx-crash | ath-2021 | genesis | bear-2018 | coffee | salary-2013 | dca-2017
+// Modes:      lump, dca, trade
+// Analytics:  Plausible (always) + Google Analytics G-VSK27SPWCV (consent-gated)
 
 document.addEventListener('DOMContentLoaded', async () => {
 
-    // --- DOM ELEMENTS ---
     const loadingOverlay      = document.getElementById('loading-overlay');
     const appContainer        = document.getElementById('app-container');
     const mainHeadline        = document.getElementById('main-headline');
@@ -18,43 +16,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     const yearMaxLabel        = document.getElementById('year-max-label');
     const initialInvestmentEl = document.getElementById('initial-investment');
     const currentValueEl      = document.getElementById('current-value');
-    const daysPassedEl        = document.getElementById('days-passed');
-    const growthEl            = document.getElementById('growth');
-    const scaleIndicatorEl    = document.getElementById('scale-indicator');
     const contextCaptionEl    = document.getElementById('context-caption');
     const connectorPath       = document.getElementById('connector-path');
     const svg                 = document.getElementById('connector-svg');
-    const donationSection     = document.getElementById('donation-section');
-    const copyFeedback        = document.getElementById('copy-feedback');
     const yearValueDisplay    = document.getElementById('year-value-display');
     const monthNameDisplay    = document.getElementById('month-name-display');
     const dayValueDisplay     = document.getElementById('day-value-display');
     const yearTrackBg         = document.getElementById('year-track-bg');
     const monthTrackBg        = document.getElementById('month-track-bg');
     const dayTrackBg          = document.getElementById('day-track-bg');
-    const donationHeadline    = document.getElementById('donation-headline');
     const selectedDateEl      = document.getElementById('selected-date');
 
-    // Investment controls
     const investmentInput    = document.getElementById('investment-input');
     const decreaseBtn        = document.getElementById('decrease-investment');
     const increaseBtn        = document.getElementById('increase-investment');
-    const donateBtn          = document.getElementById('donate-btn');
     const notableDatesEl     = document.getElementById('notable-dates');
     const investmentSuffix   = document.getElementById('investment-suffix');
     const investmentLabelEl  = document.getElementById('investment-label');
     const investmentPrefixEl = document.getElementById('investment-prefix');
     const modeBtns           = document.querySelectorAll('.mode-btn');
 
-    // Dynamic result card labels
     const dateLabelEl  = document.getElementById('date-label');
     const valueLabelEl = document.getElementById('value-label');
 
-    // DCA chart panel
     const resultCard    = document.getElementById('result-card');
     const dcaChartPanel = document.getElementById('dca-chart-panel');
 
-    // Trade mode — sell date
     const sellYearSlider       = document.getElementById('sell-year-slider');
     const sellMonthSlider      = document.getElementById('sell-month-slider');
     const sellDaySlider        = document.getElementById('sell-day-slider');
@@ -69,7 +56,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const sellDateRow          = document.getElementById('sell-date-row');
     const sellDateDisplayEl    = document.getElementById('sell-date-display');
 
-    // --- STATE & CONSTANTS ---
     let investmentAmount = 100;
     let currentMode = 'lump';
     let tradeTab = 'buy';
@@ -90,37 +76,110 @@ document.addEventListener('DOMContentLoaded', async () => {
     ];
 
     const CONTEXT_CAPTIONS = [
-        { max: 0,           text: null },
-        { max: 500,         text: 'A nice dinner out. Not quite retirement.' },
-        { max: 2_000,       text: 'A month of rent in most cities.' },
-        { max: 10_000,      text: 'A solid emergency fund.' },
-        { max: 50_000,      text: 'A new car. Paid in full.' },
-        { max: 150_000,     text: 'A down payment on a house.' },
-        { max: 500_000,     text: 'Financial freedom in Southeast Asia.' },
-        { max: 1_000_000,   text: 'Early retirement in Eastern Europe.' },
-        { max: 5_000_000,   text: 'A house in Austin. Cash.' },
-        { max: 20_000_000,  text: '14 years of doing nothing. In Bali.' },
-        { max: Infinity,    text: 'Generational wealth. Your grandkids thank you.' },
+        { max: 0,             text: null },
+        { max: 50,            text: 'Less than a tank of gas. Hurts differently.' },
+        { max: 200,           text: "A round of drinks you didn't buy." },
+        { max: 500,           text: 'A nice dinner out. Not quite retirement.' },
+        { max: 1_000,         text: 'A flight to somewhere warmer.' },
+        { max: 2_000,         text: 'A month of rent in most cities.' },
+        { max: 5_000,         text: 'Three months of groceries. Or one therapy session about this.' },
+        { max: 10_000,        text: 'A solid emergency fund.' },
+        { max: 25_000,        text: 'A year of college tuition. Or a watch that changes nothing.' },
+        { max: 50_000,        text: 'A new car. Paid in full.' },
+        { max: 100_000,       text: 'A Tesla. In cash. Still hurts.' },
+        { max: 150_000,       text: 'A down payment on a house.' },
+        { max: 300_000,       text: 'A starter home in the midwest. Or a parking spot in Manhattan.' },
+        { max: 500_000,       text: 'Financial freedom in Southeast Asia.' },
+        { max: 750_000,       text: "Enough to quit your job. Not enough to forget you had one." },
+        { max: 1_000_000,     text: 'Early retirement in Eastern Europe.' },
+        { max: 2_000_000,     text: 'A vineyard in Portugal. Grapes not included.' },
+        { max: 5_000_000,     text: 'A house in Austin. Cash.' },
+        { max: 10_000_000,    text: 'Tell your boss what you really think.' },
+        { max: 20_000_000,    text: '14 years of doing nothing. In Bali.' },
+        { max: 50_000_000,    text: 'Buy the island. Skip the resort.' },
+        { max: 100_000_000,   text: 'Your name on a building. A small one.' },
+        { max: Infinity,      text: 'Generational wealth. Your grandkids thank you.' },
     ];
 
     const TEXT_VARIANTS = {
-        subtitle: {
-            default:    "Let's calculate the millions you never made.",
-            neutral:    "Let's see what you missed out on.",
-            intriguing: "The most expensive question you never asked."
-        },
         mainHeadline: {
-            default: 'WhatIfBtc',
             diamond: 'Running the numbers on your diamond hands.'
         },
-        donationHeadline: {
-            default: 'Appreciate clean data and an open-source tool?',
-            fire:    'How a small allocation to BTC could have accelerated your FIRE journey.',
-            coffee:  'Every coffee helps add features like DCA & staking calculators.'
-        }
     };
 
-    // --- UTILITIES ---
+    // Campaign URL presets (utm_campaign=)
+    const CAMPAIGNS = {
+        'pizza-day': {
+            date: '2010-05-22', amount: 41,
+            subtitle: 'Laszlo paid 10,000 BTC for 2 pizzas. $41 face value. What if he kept them?'
+        },
+        'covid-dip': {
+            date: '2020-03-16', amount: 100,
+            subtitle: 'March 2020 — the world was shutting down. Bitcoin hit $3,867. What if you bought the fear?'
+        },
+        'halving-2020': {
+            date: '2020-05-11', amount: 100,
+            subtitle: 'Third halving day. Supply cut in half. Demand didn\'t get the memo.'
+        },
+        'halving-2024': {
+            date: '2024-04-20', amount: 100,
+            subtitle: 'Fourth halving — April 2024. The next chapter starts here.'
+        },
+        'ftx-crash': {
+            date: '2022-11-08', amount: 100,
+            subtitle: 'FTX collapsed. SBF lied. Bitcoin kept going. It always does.'
+        },
+        'ath-2021': {
+            date: '2021-11-10', amount: 100,
+            subtitle: '$69,000. The peak. Everyone said $100K was next. Then it wasn\'t.'
+        },
+        'genesis': {
+            date: '2009-01-12', amount: 100,
+            subtitle: 'Block 170 — the first Bitcoin transaction. Satoshi sent 10 BTC to Hal Finney.'
+        },
+        'bear-2018': {
+            date: '2018-12-14', amount: 100,
+            subtitle: 'December 2018. Bitcoin down 84% from ATH. The obituaries were being written again.'
+        },
+        'coffee': {
+            date: '2015-01-01', amount: 4, mode: 'dca',
+            subtitle: 'One coffee a day. $4/month. What if it went to Bitcoin instead?'
+        },
+        'salary-2013': {
+            date: '2013-01-01', amount: 100,
+            subtitle: 'Average US salary in 2013 was ~$3,800/mo. What if just $100 went to Bitcoin?'
+        },
+        'dca-2017': {
+            date: '2017-01-01', amount: 50, mode: 'dca',
+            subtitle: '$50/month starting January 2017. Through the crash, through the recovery.'
+        },
+    };
+
+    const ANNIVERSARY_EVENTS = [
+        { month: 1,  day: 3,  emoji: '⛏', title: 'Genesis Block Day',
+          text: 'On this day in 2009, Satoshi mined Bitcoin\'s first block.' },
+        { month: 5,  day: 22, emoji: '🍕', title: 'Bitcoin Pizza Day',
+          text: 'On this day in 2010, 10,000 BTC were paid for 2 pizzas.' },
+        { month: 10, day: 31, emoji: '📄', title: 'Bitcoin Whitepaper Day',
+          text: 'On this day in 2008, Satoshi published the Bitcoin whitepaper.' },
+        { month: 11, day: 28, emoji: '₿',  title: 'First Halving Day (2012)',
+          text: 'On this day in 2012, Bitcoin\'s first halving cut the block reward to 25 BTC.' },
+        { month: 7,  day: 9,  emoji: '₿',  title: 'Second Halving Day (2016)',
+          text: 'On this day in 2016, the block reward dropped to 12.5 BTC.' },
+        { month: 5,  day: 11, emoji: '₿',  title: 'Third Halving Day (2020)',
+          text: 'On this day in 2020, Bitcoin\'s reward dropped to 6.25 BTC.' },
+        { month: 4,  day: 20, emoji: '₿',  title: 'Fourth Halving Day (2024)',
+          text: 'On this day in 2024, the block reward dropped to 3.125 BTC.' },
+    ];
+
+    const DONATE_COINS = [
+        { id: 'btc', name: 'BTC', address: 'bc1qn8ekrvtadknm282xvnke7t0s8qdegpc696g32j' },
+        { id: 'ltc', name: 'LTC', address: 'ltc1qgss4xnnrd5lkkqa2uc4kkcmv5w4pw8wfyt88vv' },
+        { id: 'eth', name: 'ETH', address: '0xA0e6750f49616f124736Ec84B04c84884855a98A' },
+        { id: 'trx', name: 'TRX', address: 'THAcQXrm9TNjVJTt7Ai9UkSJtTM5N7Apnv' },
+        { id: 'sol', name: 'SOL', address: 'HfXLFRBZkEkqig6pZRzXactNJBoHY1qHrTCRU3Q2ZBT8' },
+    ];
+
     function formatLargeNumber(num) {
         if (num == null || isNaN(num)) return 'N/A';
         if (num < 1_000)             return num.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
@@ -152,7 +211,55 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else { execFallback(); showFeedback(); }
     }
 
-    // --- RENDERING LOGIC ---
+    function saveState() {
+        try {
+            localStorage.setItem('whatifbtc_state', JSON.stringify({
+                mode:      currentMode,
+                year:      yearSlider.value,
+                month:     monthSlider.value,
+                day:       daySlider.value,
+                amount:    investmentAmount,
+                sellYear:  sellYearSlider?.value,
+                sellMonth: sellMonthSlider?.value,
+                sellDay:   sellDaySlider?.value,
+            }));
+            if (!localStorage.getItem('whatifbtc_consent')) showStorageToast();
+        } catch(e) {}
+    }
+
+    function restoreState() {
+        try {
+            const raw = localStorage.getItem('whatifbtc_state');
+            if (!raw) return false;
+            const s = JSON.parse(raw);
+            if (s.year)   yearSlider.value  = s.year;
+            if (s.month)  monthSlider.value = s.month;
+            if (s.day)    daySlider.value   = s.day;
+            if (s.amount && +s.amount > 0) {
+                investmentAmount = +s.amount;
+                if (investmentInput) investmentInput.value = (+s.amount).toFixed(2);
+            }
+            if (s.sellYear  && sellYearSlider)  sellYearSlider.value  = s.sellYear;
+            if (s.sellMonth && sellMonthSlider) sellMonthSlider.value = s.sellMonth;
+            if (s.sellDay   && sellDaySlider)   sellDaySlider.value   = s.sellDay;
+            if (s.mode && ['lump','dca','trade'].includes(s.mode)) setMode(s.mode, true);
+            return true;
+        } catch(e) { return false; }
+    }
+
+    function showStorageToast() {
+        const toast = document.getElementById('storage-toast');
+        if (!toast) return;
+        toast.classList.remove('hidden');
+        const dismiss = document.getElementById('storage-toast-dismiss');
+        const hide = () => {
+            toast.classList.add('hidden');
+            try { localStorage.setItem('whatifbtc_consent', '1'); } catch(e) {}
+        };
+        dismiss?.addEventListener('click', hide, { once: true });
+        setTimeout(hide, 6000);
+    }
+
     function updateUI() {
         const year  = +yearSlider.value;
         const month = +monthSlider.value;
@@ -241,27 +348,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         initialInvestmentEl.textContent = formatCurrency(displayInvested, displayInvested < 100 ? 2 : 0);
 
-        const hasResult    = currentMode === 'dca' || currentMode === 'trade' ? currentValue > 0 : pastPrice > 0;
+        const hasResult    = ['dca','trade'].includes(currentMode) ? currentValue > 0 : pastPrice > 0;
         const formattedVal = hasResult ? formatLargeNumber(currentValue) : 'N/A';
         currentValueEl.textContent  = formattedVal;
         currentValueEl.style.fontSize = formattedVal.length > 9 ? '1.75rem' : '2rem';
-
-        if (daysPassedEl) daysPassedEl.textContent = daysPassed.toLocaleString('en-US');
-        if (growthEl) growthEl.textContent = hasResult
-            ? `${growth > 0 ? '+' : ''}${growth.toLocaleString('en-US', { maximumFractionDigits: 2 })}%`
-            : 'N/A';
-
-        if (scaleIndicatorEl) {
-            if (hasResult && currentValue > displayInvested * 2) {
-                const multiplier = currentValue / investmentAmount;
-                const fmt = multiplier >= 1000
-                    ? `×${(multiplier / 1000).toFixed(multiplier >= 10000 ? 0 : 1)}K`
-                    : `×${Math.round(multiplier)}`;
-                scaleIndicatorEl.textContent = fmt;
-            } else {
-                scaleIndicatorEl.textContent = '';
-            }
-        }
 
         if (contextCaptionEl) {
             const caption = hasResult
@@ -271,6 +361,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         updateActivePill();
+
     }
 
     function updateSliderFill(slider, trackBg, isMonth = false, yearRef = null, fillColor = 'var(--accent-color)') {
@@ -327,7 +418,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // --- MODE ---
     function setMode(mode, silent = false) {
         currentMode = mode;
         modeBtns.forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
@@ -352,14 +442,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             connectorPath.style.filter = 'drop-shadow(0 0 5px rgba(255,153,0,0.7))';
         }
 
-        if (investmentPrefixEl) investmentPrefixEl.textContent = isTrade ? 'You put in' : 'If you had invested';
+        if (investmentPrefixEl) investmentPrefixEl.textContent = isTrade ? 'If you had invested' : 'If you had invested';
         if (dateLabelEl) {
-            dateLabelEl.textContent = isTrade ? 'Bought on' : isDca ? 'Start Date' : 'Purchase Date';
+            dateLabelEl.textContent = isTrade ? 'Purchase Date' : isDca ? 'Start Date' : 'Purchase Date';
         }
-        if (valueLabelEl)      valueLabelEl.textContent      = isTrade ? 'You Took Out' : 'It Would Be Worth';
-        if (investmentLabelEl) investmentLabelEl.textContent = isDca ? 'Total Invested' : isTrade ? 'You Put In' : 'Initial Investment';
+        if (valueLabelEl)      valueLabelEl.textContent      = isTrade ? 'You Would Have Gotten' : 'It Would Be Worth';
+        if (investmentLabelEl) investmentLabelEl.textContent = isDca ? 'Total Invested' : 'Initial Investment';
 
         if (!silent) updateAll();
+        if (!silent) syncRightPanelHeight();
     }
 
     function setTradeTab(tab) {
@@ -371,7 +462,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         syncRightPanelHeight();
     }
 
-    // --- PRICE LOOKUP ---
     function getPriceForMonth(year, month) {
         for (let d = 1; d <= 7; d++) {
             const key = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
@@ -405,7 +495,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return { totalBtc, totalInvested: months * investmentAmount, months };
     }
 
-    // --- NOTABLE DATES ---
+    // --- Notable Dates ---
     function renderNotableDates() {
         if (!notableDatesEl) return;
         NOTABLE_DATES.forEach(nd => {
@@ -448,7 +538,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // --- DATA LOADING ---
     async function loadPriceData() {
         try {
             const res  = await fetch('dates/history.json');
@@ -467,7 +556,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // --- URL PARAMETERS ---
     function applyUrlParameters() {
         const params      = new URLSearchParams(window.location.search);
         const amountParam = parseFloat(params.get('amount'));
@@ -496,47 +584,83 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         const campaign = params.get('utm_campaign');
         if (campaign) {
-            switch (campaign) {
-                case 'neutral':       subtitle.textContent        = TEXT_VARIANTS.subtitle.neutral;          break;
-                case 'intriguing':    subtitle.textContent        = TEXT_VARIANTS.subtitle.intriguing;       break;
-                case 'diamond_hands': mainHeadline.textContent    = TEXT_VARIANTS.mainHeadline.diamond;      break;
-                case 'fire_journey':  donationHeadline.textContent= TEXT_VARIANTS.donationHeadline.fire;     break;
-                case 'coffee':        donationHeadline.textContent= TEXT_VARIANTS.donationHeadline.coffee;   break;
+            const preset = CAMPAIGNS[campaign];
+            if (preset) {
+                if (preset.subtitle && subtitle) subtitle.textContent = preset.subtitle;
+                if (preset.amount && !params.has('amount')) {
+                    investmentAmount = preset.amount;
+                    if (investmentInput) investmentInput.value = preset.amount.toFixed(2);
+                }
+                if (preset.date && !params.has('date')) {
+                    const [py, pm, pd] = preset.date.split('-').map(Number);
+                    yearSlider.value  = py;
+                    monthSlider.value = pm;
+                    daySlider.value   = pd;
+                }
+                if (preset.mode && !params.has('mode')) setMode(preset.mode, true);
             }
+            if (campaign === 'diamond_hands' && mainHeadline) mainHeadline.textContent = TEXT_VARIANTS.mainHeadline.diamond;
         }
     }
 
-    // --- DONATION CARD RENDERING ---
-    function renderDonationCards() {
-        const isMobile = window.innerWidth < 768;
-        document.querySelectorAll('.donation-card').forEach(card => {
-            const address   = card.dataset.address;
-            const container = card.querySelector('.qr-code-container');
-            const copyBtn   = card.querySelector('.copy-btn');
-            const oldNet    = card.querySelector('.network-name');
-            if (oldNet) oldNet.remove();
-            if (isMobile) {
-                if (container) container.style.display = 'none';
-                const networkName = card.dataset.network || 'Bitcoin';
-                if (copyBtn) {
-                    const netEl = document.createElement('div');
-                    netEl.className  = 'network-name mb-2 text-sm font-medium text-gray-700';
-                    netEl.textContent = networkName;
-                    card.insertBefore(netEl, copyBtn);
-                }
-            } else {
-                if (container) {
-                    container.style.display = '';
-                    container.innerHTML = '';
-                    if (address) {
-                        new QRCode(container, { text: address, width: 112, height: 112, colorDark: '#000', colorLight: '#fff', correctLevel: QRCode.CorrectLevel.H });
-                    }
-                }
-            }
+    function loadGA() {
+        if (window._gaLoaded) return;
+        window._gaLoaded = true;
+        const s = document.createElement('script');
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtag/js?id=G-VSK27SPWCV';
+        document.head.appendChild(s);
+        window.dataLayer = window.dataLayer || [];
+        window.gtag = function () { window.dataLayer.push(arguments); };
+        gtag('js', new Date());
+        gtag('config', 'G-VSK27SPWCV');
+    }
+
+    function initCookieConsent() {
+        loadGA();
+        if (localStorage.getItem('ga_seen')) return;
+        const banner = document.getElementById('cookie-banner');
+        if (!banner) return;
+        banner.classList.remove('hidden');
+        document.getElementById('cookie-accept')?.addEventListener('click', () => {
+            localStorage.setItem('ga_seen', '1');
+            banner.classList.add('hidden');
         });
     }
 
-    // --- DCA CHART ---
+    function checkAnniversary() {
+        const now = new Date();
+        const ev  = ANNIVERSARY_EVENTS.find(e => e.month === now.getMonth() + 1 && e.day === now.getDate());
+        if (!ev) return;
+        const banner = document.getElementById('anniversary-banner');
+        const text   = document.getElementById('anniversary-text');
+        if (!banner || !text) return;
+        text.textContent = `${ev.emoji} ${ev.title} — ${ev.text}`;
+        banner.classList.remove('hidden');
+        document.getElementById('anniversary-dismiss')?.addEventListener('click', () => banner.classList.add('hidden'));
+    }
+
+    function buildDonateModal() {
+        const tabsEl  = document.querySelector('.donate-coin-tabs');
+        const bodyEl  = document.querySelector('.donate-modal-body');
+        if (!tabsEl || !bodyEl) return;
+        const thanksEl = bodyEl.querySelector('.donate-thanks');
+        DONATE_COINS.forEach((coin, i) => {
+            const btn = document.createElement('button');
+            btn.className    = 'donate-coin-btn' + (i === 0 ? ' active' : '');
+            btn.dataset.coin = coin.id;
+            btn.textContent  = coin.name;
+            tabsEl.appendChild(btn);
+
+            const panel = document.createElement('div');
+            panel.className      = 'donate-coin-panel' + (i === 0 ? '' : ' hidden');
+            panel.id             = `donate-${coin.id}`;
+            panel.dataset.address = coin.address;
+            panel.innerHTML = `<div class="donate-qr" id="donate-qr-${coin.id}"></div><div class="donate-addr-row"><code class="donate-addr">${coin.address}</code><button class="donate-copy-btn" data-address="${coin.address}">Copy address</button></div>`;
+            bodyEl.insertBefore(panel, thanksEl);
+        });
+    }
+
     function renderDCAChart(startYear, startMonth, startDay) {
         const areaEl    = document.getElementById('dca-chart-area');
         const lineEl    = document.getElementById('dca-chart-line');
@@ -617,19 +741,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         invLineEl.setAttribute('d', invPts.trim());
     }
 
-    // --- SHARE ---
     function buildShareUrl() {
         const params = new URLSearchParams();
         params.set('amount', investmentAmount);
         params.set('date', `${yearSlider.value}-${String(+monthSlider.value).padStart(2,'0')}-${String(+daySlider.value).padStart(2,'0')}`);
-        if (currentMode !== 'lump') params.set('mode', currentMode);
+        params.set('mode', currentMode);
         if (currentMode === 'trade' && sellYearSlider && sellMonthSlider) {
             params.set('sell', `${sellYearSlider.value}-${String(+sellMonthSlider.value).padStart(2,'0')}`);
         }
         return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
     }
 
-    // --- RIGHT PANEL HEIGHT ---
     function syncRightPanelHeight() {
         const rightCol = document.getElementById('right-col');
         if (!rightCol) return;
@@ -642,17 +764,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (bottom > top) rightCol.style.height = (bottom - top) + 'px';
     }
 
-    // --- INITIALIZATION ---
     async function initialize() {
         if (!await loadPriceData()) return;
 
-        yearSlider.min   = START_DATE.getFullYear();
-        yearSlider.max   = END_DATE.getFullYear();
-        yearSlider.value = END_DATE.getFullYear();
+        yearSlider.min = START_DATE.getFullYear();
+        yearSlider.max = END_DATE.getFullYear();
         yearMinLabel.textContent = yearSlider.min;
         yearMaxLabel.textContent = yearSlider.max;
-        monthSlider.value = END_DATE.getMonth() + 1;
-        daySlider.value   = END_DATE.getDate();
 
         if (sellYearSlider) {
             sellYearSlider.min   = START_DATE.getFullYear();
@@ -664,18 +782,35 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (sellMonthSlider) sellMonthSlider.value = END_DATE.getMonth() + 1;
         if (sellDaySlider)   sellDaySlider.value   = END_DATE.getDate();
 
+        yearSlider.value  = 2020;
+        monthSlider.value = 1;
+        daySlider.value   = 1;
+
+        const hadSavedState = restoreState();
         applyUrlParameters();
+
         renderNotableDates();
         updateAll();
         loadingOverlay.style.display = 'none';
         appContainer.classList.remove('invisible');
-        renderDonationCards();
         drawConnectorLine();
         syncRightPanelHeight();
+        initCookieConsent();
+        checkAnniversary();
+
+        if (!hadSavedState && !new URLSearchParams(window.location.search).has('date')) {
+            const hintEl = document.getElementById('subtitle-hint');
+            if (hintEl) {
+                hintEl.classList.remove('hidden');
+                const hideHint = () => hintEl.classList.add('hidden');
+                [yearSlider, monthSlider, daySlider].forEach(sl =>
+                    sl.addEventListener('input', hideHint, { once: true })
+                );
+            }
+        }
 
         window.addEventListener('resize', () => {
             drawConnectorLine();
-            renderDonationCards();
             syncRightPanelHeight();
         });
     }
@@ -683,9 +818,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     function updateAll() {
         updateUI();
         drawConnectorLine();
+        saveState();
     }
 
-    // --- EVENT LISTENERS ---
     [yearSlider, monthSlider, daySlider].forEach(sl => sl.addEventListener('input', updateAll));
     if (sellYearSlider)  sellYearSlider.addEventListener('input',  updateAll);
     if (sellMonthSlider) sellMonthSlider.addEventListener('input', updateAll);
@@ -695,7 +830,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         btn.addEventListener('click', () => setTradeTab(btn.dataset.tab))
     );
     document.querySelectorAll('.share-btn').forEach(btn =>
-        btn.addEventListener('click', () => copyToClipboard(buildShareUrl(), document.getElementById('share-feedback'), 'Link copied!'))
+        btn.addEventListener('click', () => {
+            const feedbackId = btn.closest('#dca-chart-panel') ? 'share-feedback-dca' : 'share-feedback';
+            copyToClipboard(buildShareUrl(), document.getElementById(feedbackId), 'Link copied!');
+            if (typeof plausible !== 'undefined') plausible('Share', { props: { mode: currentMode } });
+            if (window.gtag) gtag('event', 'share', { event_category: 'engagement', event_label: currentMode });
+        })
     );
     modeBtns.forEach(btn => btn.addEventListener('click', () => setMode(btn.dataset.mode)));
 
@@ -719,18 +859,60 @@ document.addEventListener('DOMContentLoaded', async () => {
             updateAll();
         });
     }
-    if (donateBtn) {
-        donateBtn.addEventListener('click', () => donationSection?.classList.toggle('open'));
-    }
-    document.querySelectorAll('.donation-card').forEach(card => {
-        const copyBtn = card.querySelector('.copy-btn');
-        const addr    = card.dataset.address;
-        if (copyBtn && addr) {
-            copyBtn.addEventListener('click', () => copyToClipboard(addr, copyFeedback, 'Address copied!'));
+    const donateModalEl    = document.getElementById('donate-modal');
+    const donateBtnEl      = document.getElementById('donate-btn');
+    const donateModalClose = document.getElementById('donate-modal-close');
+    const donateQrRendered = {};
+
+    function renderDonateQR(coinId) {
+        if (donateQrRendered[coinId]) return;
+        const panel = document.getElementById(`donate-${coinId}`);
+        const qrEl  = document.getElementById(`donate-qr-${coinId}`);
+        if (!panel || !qrEl || qrEl.children.length) return;
+        const addr = panel.dataset.address;
+        if (addr) {
+            new QRCode(qrEl, { text: addr, width: 88, height: 88, colorDark: '#000', colorLight: '#fff', correctLevel: QRCode.CorrectLevel.M });
+            donateQrRendered[coinId] = true;
         }
+    }
+
+    function openDonateModal() {
+        donateModalEl.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        renderDonateQR('btc');
+    }
+
+    function closeDonateModal() {
+        donateModalEl.classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+
+    if (donateBtnEl && donateModalEl) {
+        donateBtnEl.addEventListener('click', openDonateModal);
+        donateModalClose.addEventListener('click', closeDonateModal);
+        donateModalEl.querySelector('.donate-modal-backdrop').addEventListener('click', closeDonateModal);
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDonateModal(); });
+    }
+
+    buildDonateModal();
+
+    document.querySelectorAll('.donate-coin-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const coin = btn.dataset.coin;
+            document.querySelectorAll('.donate-coin-btn').forEach(b => b.classList.toggle('active', b === btn));
+            document.querySelectorAll('.donate-coin-panel').forEach(p => p.classList.toggle('hidden', p.id !== `donate-${coin}`));
+            renderDonateQR(coin);
+        });
     });
 
-    // --- MOBILE FIX ---
+    document.querySelectorAll('.donate-copy-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            copyToClipboard(btn.dataset.address, null, '');
+            btn.textContent = 'Copied!';
+            setTimeout(() => btn.textContent = 'Copy', 2000);
+        });
+    });
+
     function removeBodyOverflowHiddenOnMobile() {
         if (window.innerWidth < 768 && document.body.classList.contains('overflow-hidden')) {
             document.body.classList.remove('overflow-hidden');
@@ -738,6 +920,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     removeBodyOverflowHiddenOnMobile();
 
-    // --- START ---
     initialize();
 });

@@ -129,18 +129,26 @@ async function main() {
     while (currentDate.getTime() <= yesterday.getTime()) {
         const formattedDate = currentDate.toISOString().split('T')[0];
         logger.info(`Fetching data for ${formattedDate}...`);
-        try {
-            const timestamp = Math.floor(currentDate.getTime() / 1000); // Convert milliseconds to seconds
-            const price = await fetchPrice(timestamp, apiKey);
-            new_data.push({ date: new Date(currentDate), price: price });
-        } catch (error) {
-            logger.warn(`Could not get data for ${formattedDate}: ${error.message}`);
-            // If there's a network error, stop fetching further data for now
-            if (error.message.includes('Network error')) {
-                 logger.error(`Stopping data fetching due to network error.`);
-                 break;
+        const timestamp = Math.floor(currentDate.getTime() / 1000);
+        let price = null;
+        for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+                price = await fetchPrice(timestamp, apiKey);
+                break;
+            } catch (error) {
+                if (attempt < 3) {
+                    logger.warn(`Attempt ${attempt} failed for ${formattedDate}: ${error.message}. Retrying in 3s...`);
+                    await new Promise(r => setTimeout(r, 3000));
+                } else {
+                    logger.warn(`All 3 attempts failed for ${formattedDate}: ${error.message}`);
+                    if (error.message.includes('Network error')) {
+                        logger.error('Stopping data fetching due to network error.');
+                        currentDate = new Date(yesterday.getTime() + 1);
+                    }
+                }
             }
         }
+        if (price !== null) new_data.push({ date: new Date(currentDate), price });
         currentDate.setUTCDate(currentDate.getUTCDate() + 1);
     }
 
