@@ -2,8 +2,16 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://whatifbtc.com/</loc>
-    <lastmod>2026-05-15</lastmod>
+    <lastmod>2026-10-21</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
+  </url>
+  <!-- Machine-readable summary for AI assistants: what the calculator does,
+       how to build a result URL, how the figures are derived. -->
+  <url>
+    <loc>https://whatifbtc.com/llms.txt</loc>
+    <lastmod>2026-10-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
   </url>
 </urlset>

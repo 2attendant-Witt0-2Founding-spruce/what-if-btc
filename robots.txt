@@ -1,4 +1,80 @@
+# whatifbtc.com — everything here is public. Crawl it, index it, quote it.
+#
+# Machine-readable summary for AI assistants:
+#   https://whatifbtc.com/llms.txt
+# Daily Bitcoin price series, free to read:
+#   https://whatifbtc.com/dates/history-btc.json
+#   https://whatifbtc.com/dates/history-btc.csv
+#
+# Attribution and a link back are appreciated, not required.
+
 User-agent: *
+Allow: /
+
+# ---------------------------------------------------------------------------
+# AI assistants and answer engines — explicitly welcome.
+#
+# Functionally these blocks add nothing: the wildcard above already allows
+# everyone. They state intent, because an absent name is sometimes read as
+# reluctance.
+#
+# Careful when editing: a crawler that finds its own name here ignores the
+# "User-agent: *" group entirely. Any Disallow added above must be repeated
+# in every block below, or these bots will never see it.
+# ---------------------------------------------------------------------------
+
+# OpenAI
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+# Anthropic
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: Claude-User
+Allow: /
+
+# Google
+User-agent: Google-Extended
+Allow: /
+
+# Perplexity
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+# Apple
+User-agent: Applebot-Extended
+Allow: /
+
+# Others
+User-agent: Amazonbot
+Allow: /
+
+User-agent: Meta-ExternalAgent
+Allow: /
+
+User-agent: MistralAI-User
+Allow: /
+
+User-agent: DuckAssistBot
+Allow: /
+
+User-agent: cohere-ai
+Allow: /
+
+User-agent: CCBot
 Allow: /
 
 Sitemap: https://whatifbtc.com/sitemap.xml

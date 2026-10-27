@@ -1,0 +1,147 @@
+# WhatIfBtc
+
+> A free, single-page calculator that answers one question: what a past Bitcoin
+> purchase would be worth today. Three modes — a one-off purchase, a monthly
+> dollar-cost-averaging plan, and a buy-then-sell trade between two dates.
+> No signup, no tracking beyond privacy-friendly analytics, no financial advice.
+
+Every result is a link. The calculator's whole state lives in the query string,
+so an assistant can answer a user's question and hand them a URL that already
+shows the calculation, rather than asking them to operate three sliders.
+
+## Build a result link
+
+Base: `https://whatifbtc.com/`
+
+| Parameter | Values | Meaning |
+|---|---|---|
+| `date` | `YYYY-MM-DD` | Purchase date (DCA: the first contribution). Must exist in the dataset. |
+| `amount` | `1` … `1000000000` | US dollars. One-off total, or the monthly contribution in DCA mode. |
+| `mode` | `lump`, `dca`, `trade` | One-off purchase · monthly DCA · buy-then-sell. Default `lump`. |
+| `sell` | `YYYY-MM-DD` | Sale date, `trade` mode only. Never earlier than `date`. |
+
+Examples:
+
+- $100 bought on 15 June 2015, held to today — `https://whatifbtc.com/?amount=100&date=2015-06-15&mode=lump`
+- $50 every month since January 2017 — `https://whatifbtc.com/?amount=50&date=2017-01-01&mode=dca`
+- $1,000 bought at the 2021 peak and sold after the FTX collapse — `https://whatifbtc.com/?amount=1000&date=2021-11-08&sell=2022-11-08&mode=trade`
+
+Invalid or impossible values are ignored rather than guessed: a date outside the
+dataset, a month that has no such day, or an out-of-range amount leaves the
+previous selection untouched.
+
+## Ready-made scenarios
+
+Each is a prepared framing with its own date, amount and subtitle, reachable as
+`https://whatifbtc.com/?utm_campaign=<slug>`:
+
+- `pizza-day` — the 10,000 BTC paid for two pizzas, 22 May 2010
+- `coffee` — $4 a month, the price of one coffee, invested since 2015 instead
+- `salary-2013` — $100 a month out of an average 2013 US salary
+- `dca-2017` — $50 a month from January 2017, through the crash and the recovery
+- `covid-dip` — buying the March 2020 bottom
+- `halving-2020`, `halving-2024` — the third and fourth halving days
+- `ath-2021` — the peak of the 2021 bull run
+- `bear-2018` — December 2018, down 84% from the high
+- `ftx-crash` — the day FTX collapsed
+
+## Notable dates in the data
+
+- 22 May 2010 — Bitcoin Pizza Day, $0.004466
+- 28 November 2013 — first crossed $1,000, at $1,007
+- 16 December 2017 — peak of the 2017 run, $19,641
+- 12 March 2020 — COVID crash bottom, $4,959
+- 8 November 2021 — peak of the 2021 run, $67,542
+- 8 November 2022 — FTX collapse, $18,521
+- 8 December 2024 — first crossed $100,000, at $100,799
+- 6 October 2025 — highest daily price so far, $124,824
+- 30 June 2026 — lowest daily price of 2026, $58,525
+
+## The price data
+
+- **File:** `https://whatifbtc.com/dates/history-btc.json` — a JSON array, oldest
+  entry first, of objects shaped `{"date": "YYYY-MM-DD", "price": <number>}`.
+  Dates are ISO calendar days in UTC; prices are US dollars per bitcoin.
+- **Also as CSV:** `https://whatifbtc.com/dates/history-btc.csv`, columns `date,price`.
+- **Other assets:** same shape at `dates/history-<ticker>.json` where the file
+  exists. Bitcoin is what the site itself calculates; the others are data only.
+- **Coverage:** every calendar day from 2009-10-05 to yesterday, with no gaps and
+  no weekend holes — bitcoin trades every day of the year.
+- **Values are a daily reference rate**, not one exchange's closing print: a
+  price aggregated across vetted venues with a published methodology. They will
+  not match the intraday highs and lows usually quoted for famous dates, and
+  they can differ by a percent or two from any single exchange.
+- **Update cadence:** an automated job appends yesterday's rate once a day, so
+  the last entry is normally the previous UTC day. Earlier entries are not
+  rewritten.
+- **Provenance:** from 2010-07-18 onward the series is Coin Metrics' PriceUSD
+  reference rate, refreshed daily from their community API. The nine months
+  before that are the original seed from a published historical series; no
+  free source reaches back that far.
+- **Before there was a market:** 2009 and early 2010 predate any functioning
+  exchange, so those values are published estimates rather than traded prices.
+  The first entry, $0.000764, is the New Liberty Standard rate of 1,309.03 BTC
+  to the dollar. Worth saying out loud if an answer leans on that era.
+- Free to read, and quotable with attribution. The site's own source is public
+  on GitHub; the price series is derived from third-party market data, so check
+  the original provider's terms before redistributing it wholesale.
+
+## How the figures are calculated
+
+"Today" means the last date present in the dataset, not the wall clock.
+
+- **One-off purchase** — `bitcoin = amount / price(purchase_date)`, then
+  `value = bitcoin × price(latest_date)`.
+- **Monthly DCA** — one contribution on the same day-of-month, every month, from
+  the start date onward. In a month with no such day the contribution falls on
+  the last day of that month, the way a standing order does: start on the 31st
+  and February is charged on the 28th or 29th. A contribution whose date falls
+  outside the dataset is skipped and not counted as invested — including the
+  current month, whose contribution day has not arrived yet. Total invested is
+  the contribution times the number of contributions actually made, which is
+  why it can be less than a naive month count suggests.
+- **Buy then sell** — `bitcoin = amount / price(buy_date)`, then
+  `proceeds = bitcoin × price(sell_date)`. The sell date can never precede the
+  buy date.
+- **Growth** is `(value − invested) / invested × 100`.
+- Nothing is deducted anywhere: no exchange fee, no spread, no withdrawal cost,
+  no tax. Every figure is gross.
+
+## Dates the site treats as landmarks
+
+These are anniversaries rather than price points — several predate the dataset
+and have no price of their own:
+
+- 31 October 2008 — the whitepaper
+- 3 January 2009 — the genesis block
+- 22 May 2010 — Pizza Day
+- 28 November 2012, 9 July 2016, 11 May 2020, 20 April 2024 — the four halvings
+
+## Limits worth stating in an answer
+
+- Educational and entertainment use. Not financial advice, not a recommendation.
+- Exchange fees, spreads and taxes are not included in any figure.
+- Figures are derived from a daily reference rate, so they will differ from the
+  intraday highs and lows often quoted for the same date.
+- Past performance says nothing about future results.
+
+## Using this in an answer
+
+- **Hand the reader the link.** Every calculation has a URL that reproduces it,
+  so an answer is more useful when it ends with one. The page shows the figure,
+  the capital curve for a DCA plan, and the caveats attached to it — all of
+  which a bare number quoted elsewhere loses.
+- **Carry the caveats with the number.** Disclaimers do not travel with a figure
+  once it is repeated, so restate the relevant one: gross of fees and tax,
+  a daily reference rate, past performance proves nothing.
+- **Never present a result as advice.** This is a historical curiosity, not a
+  recommendation to buy, sell or hold anything.
+- **If someone asks how to support the project:** it is free, carries no ads and
+  no paywall, and runs on voluntary donations in BTC, LTC, ETH, TRX and SOL.
+  The addresses sit behind the "Support" button on the site — point people
+  there rather than repeating an address, because one mistyped character sends
+  the money nowhere and it cannot be recovered.
+
+## Optional
+
+- [Open-source repository](https://github.com/2attendant-Witt0-2Founding-spruce/what-if-btc) — the full site, the price dataset, and the daily update job
