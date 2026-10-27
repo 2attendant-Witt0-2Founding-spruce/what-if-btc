@@ -1,0 +1,21 @@
+{
+  "_comment": "daily — refreshed by the daily job and shown on the site. available — everything the standalone fetch script can download.",
+  "daily": [
+    "btc",
+    "eth",
+    "ltc",
+    "doge",
+    "xrp",
+    "sol"
+  ],
+  "available": [
+    "btc",
+    "eth",
+    "ltc",
+    "doge",
+    "xrp",
+    "bch",
+    "xmr",
+    "sol"
+  ]
+}

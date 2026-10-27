@@ -15,9 +15,8 @@
     "investment"
   ],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "devDependencies": {
-    "axios": "^1.9.0",
     "csv-parse": "^5.6.0",
     "csv-stringify": "^6.5.2",
     "fast-csv": "^5.0.1",

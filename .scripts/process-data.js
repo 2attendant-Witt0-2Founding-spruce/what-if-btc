@@ -1,208 +1,111 @@
-const path = require('path');
-const fs = require('fs').promises; // Use promises-based file system module
-const axios = require('axios'); // For making HTTP requests
-const { parse } = require('csv-parse'); // For parsing CSV
-const { stringify } = require('csv-stringify'); // For stringifying CSV
+/**
+ * Daily update. Fetches exactly the days that are missing — normally one — for
+ * every coin listed in .scripts/coins.json, and appends them.
+ *
+ *     node .scripts/process-data.js             # coins from coins.json
+ *     node .scripts/process-data.js btc eth     # just these
+ *
+ * Providers are tried in order (Coin Metrics → Bitstamp → blockchain.com →
+ * CoinDesk-with-key) and the first usable answer wins, so one provider having a
+ * bad day does not freeze the series. Which one answered is written to the log.
+ *
+ * Existing dates are never overwritten: this job appends. Rewriting history is
+ * the job of sync-history.js, which does it deliberately and reports the diff.
+ *
+ * Exits non-zero if a coin ends up more than MAX_STALE_DAYS behind — a frozen
+ * series should break the build, not sit there quietly serving old prices.
+ */
 
-// --- Configure logging ---
-// Node.js doesn't have a built-in logging module exactly like Python's,
-// but console.log, console.error, console.warn are common.
-// For more advanced logging, consider libraries like 'winston' or 'pino'.
+const path = require('path');
+const fs = require('fs');
+const { firstAnswer } = require('./lib/providers');
+const store = require('./lib/store');
+
 const logger = {
-    info: (message) => console.log(`INFO: ${new Date().toISOString()} - ${message}`),
-    warn: (message) => console.warn(`WARN: ${new Date().toISOString()} - ${message}`),
-    error: (message) => console.error(`ERROR: ${new Date().toISOString()} - ${message}`),
+    info:  m => console.log(`INFO: ${new Date().toISOString()} - ${m}`),
+    warn:  m => console.warn(`WARN: ${new Date().toISOString()} - ${m}`),
+    error: m => console.error(`ERROR: ${new Date().toISOString()} - ${m}`),
 };
 
-// --- Constants ---
-const CSV_PATH = path.join('dates', 'history.csv');
-const JSON_PATH = path.join('dates', 'history.json');
-const API_URL = "https://min-api.cryptocompare.com/data/v2/histoday";
+const MAX_STALE_DAYS = 3;
+const MAX_BACKFILL_DAYS = 30;   // more than this means something is wrong; say so
 
-/**
- * Fetches the opening price for a given day from the CryptoCompare API.
- * @param {number} dayTimestamp - Unix timestamp for the target day (at midnight UTC).
- * @param {string} apiKey - CryptoCompare API key.
- * @returns {Promise<number>} - The opening price.
- */
-async function fetchPrice(dayTimestamp, apiKey) {
-    const params = {
-        fsym: 'BTC',
-        tsym: 'USD',
-        limit: 1,
-        toTs: dayTimestamp,
-        api_key: apiKey
-    };
-
-    try {
-        const response = await axios.get(API_URL, { params, timeout: 10000 }); // 10 seconds timeout
-        const data = response.data;
-
-        if (data.Response !== 'Success' || !data.Data || !data.Data.Data || data.Data.Data.length === 0) {
-            throw new Error(`API returned an invalid response for timestamp ${dayTimestamp}`);
-        }
-
-        for (const dayData of data.Data.Data) {
-            if (dayData.time === dayTimestamp && typeof dayData.open === 'number') {
-                return dayData.open;
-            }
-        }
-        throw new Error(`Price data not found for timestamp ${dayTimestamp} in API response`);
-    } catch (error) {
-        if (axios.isAxiosError(error)) {
-            throw new Error(`Network error while fetching data for ${new Date(dayTimestamp * 1000).toISOString().split('T')[0]}: ${error.message}`);
-        }
-        throw error; // Re-throw other errors
-    }
+function coinList() {
+    const fromArgs = process.argv.slice(2).filter(a => !a.startsWith('-'));
+    if (fromArgs.length) return fromArgs.map(c => c.toLowerCase());
+    const cfg = JSON.parse(fs.readFileSync(path.join('.scripts', 'coins.json'), 'utf8'));
+    return cfg.daily;
 }
 
-/**
- * Main function to update the historical data.
- */
+const today = () => new Date().toISOString().slice(0, 10);
+const addDays = (date, n) => new Date(Date.parse(`${date}T00:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
+
+async function updateCoin(coin) {
+    const byDate = await store.load(coin);
+    if (!byDate.size) {
+        logger.error(`${coin}: no history file. Run fetch-history.js ${coin} first`);
+        return { coin, ok: false };
+    }
+
+    const last = [...byDate.keys()].sort().at(-1);
+    // Yesterday UTC is the newest day any of these providers can have closed.
+    const target = addDays(today(), -1);
+
+    const missing = [];
+    for (let d = addDays(last, 1); d <= target; d = addDays(d, 1)) missing.push(d);
+
+    if (!missing.length) {
+        logger.info(`${coin}: already current (last day ${last})`);
+        return { coin, ok: true, added: 0, last };
+    }
+    if (missing.length > MAX_BACKFILL_DAYS) {
+        logger.warn(`${coin}: missing ${missing.length} days — more than a daily update. `
+                  + `Taking the last ${MAX_BACKFILL_DAYS} only; the rest is a job for fetch-history.js`);
+        missing.splice(0, missing.length - MAX_BACKFILL_DAYS);
+    }
+
+    let added = 0;
+    for (const date of missing) {
+        const chain = [];
+        const answer = await firstAnswer('day', coin, date, { onTry: (n, s) => chain.push(`${n}:${s}`) });
+        if (!answer) {
+            logger.warn(`${coin} ${date}: nobody answered [${chain.join(', ')}]`);
+            continue;
+        }
+        byDate.set(answer.data.date, answer.data.price);
+        added++;
+        logger.info(`${coin} ${answer.data.date} = $${answer.data.price} (${answer.provider})`
+                  + (chain.length > 1 ? ` [${chain.join(', ')}]` : ''));
+    }
+
+    const newest = [...byDate.keys()].sort().at(-1);
+    const ageDays = Math.floor((Date.now() - Date.parse(`${newest}T00:00:00Z`)) / 86400000);
+    if (added) {
+        const rows = await store.save(coin, byDate);
+        logger.info(`${coin}: wrote ${rows.length} rows, newest ${newest}`);
+    }
+
+    if (ageDays > MAX_STALE_DAYS) {
+        logger.error(`${coin}: newest row ${newest} is ${ageDays} days old (limit ${MAX_STALE_DAYS}). `
+                   + 'The sources look unreachable — failing so this does not go unnoticed.');
+        return { coin, ok: false, added, last: newest };
+    }
+    return { coin, ok: true, added, last: newest };
+}
+
 async function main() {
-    logger.info("Starting data processing script...");
+    const coins = coinList();
+    logger.info(`Coins: ${coins.join(', ')}`);
 
-    // --- Step 1: Get API Key ---
-    const apiKey = process.env.CRYPTOCOMPARE_API_KEY;
-    if (!apiKey) {
-        logger.error("FATAL: CRYPTOCOMPARE_API_KEY environment variable not set.");
-        process.exit(1);
-    }
+    const results = [];
+    for (const coin of coins) results.push(await updateCoin(coin));
 
-    // --- Step 2: Load existing data ---
-    let df = []; // Represents your data frame (array of objects)
-    let lastDateInCsv = null;
-
-    try {
-        const csvContent = await fs.readFile(CSV_PATH, 'utf8');
-        const records = await new Promise((resolve, reject) => {
-            parse(csvContent, {
-                columns: true, // Treat the first row as column headers
-                skip_empty_lines: true
-            }, (err, data) => {
-                if (err) reject(err);
-                resolve(data);
-            });
-        });
-
-        // Convert date strings to Date objects and find the max date
-        df = records.map(row => ({
-            date: new Date(row.date), // Parse date string to Date object
-            price: parseFloat(row.price)
-        }));
-
-        if (df.length > 0) {
-            lastDateInCsv = new Date(Math.max(...df.map(row => row.date.getTime())));
-            // Normalize to midnight
-            lastDateInCsv.setUTCHours(0, 0, 0, 0);
-        } else {
-            logger.warn(`CSV file ${CSV_PATH} is empty. Starting from scratch.`);
-            // If CSV is empty, start from a reasonable past date, e.g., 2010-01-01
-            lastDateInCsv = new Date(Date.UTC(2010, 0, 1)); 
-        }
-
-    } catch (error) {
-        if (error.code === 'ENOENT') {
-            logger.error(`FATAL: The source file ${CSV_PATH} was not found.`);
-        } else {
-            logger.error(`FATAL: Failed to read or parse ${CSV_PATH}: ${error.message}`);
-        }
-        process.exit(1);
-    }
-
-    // --- Step 3: Determine which dates to update ---
-    // Get yesterday's date in UTC (normalize to midnight)
-    const yesterday = new Date();
-    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
-    yesterday.setUTCHours(0, 0, 0, 0);
-
-    logger.info(`Last date in CSV: ${lastDateInCsv.toISOString().split('T')[0]}`);
-    logger.info(`Target date (yesterday): ${yesterday.toISOString().split('T')[0]}`);
-
-    let currentDate = new Date(lastDateInCsv);
-    currentDate.setUTCDate(currentDate.getUTCDate() + 1); // Start from the day after the last recorded date
-    currentDate.setUTCHours(0, 0, 0, 0);
-
-    const new_data = [];
-
-    // --- Step 4: Fetch new data from API ---
-    while (currentDate.getTime() <= yesterday.getTime()) {
-        const formattedDate = currentDate.toISOString().split('T')[0];
-        logger.info(`Fetching data for ${formattedDate}...`);
-        const timestamp = Math.floor(currentDate.getTime() / 1000);
-        let price = null;
-        for (let attempt = 1; attempt <= 3; attempt++) {
-            try {
-                price = await fetchPrice(timestamp, apiKey);
-                break;
-            } catch (error) {
-                if (attempt < 3) {
-                    logger.warn(`Attempt ${attempt} failed for ${formattedDate}: ${error.message}. Retrying in 3s...`);
-                    await new Promise(r => setTimeout(r, 3000));
-                } else {
-                    logger.warn(`All 3 attempts failed for ${formattedDate}: ${error.message}`);
-                    if (error.message.includes('Network error')) {
-                        logger.error('Stopping data fetching due to network error.');
-                        currentDate = new Date(yesterday.getTime() + 1);
-                    }
-                }
-            }
-        }
-        if (price !== null) new_data.push({ date: new Date(currentDate), price });
-        currentDate.setUTCDate(currentDate.getUTCDate() + 1);
-    }
-
-    // --- Step 5: Update CSV file ONLY if new data was fetched ---
-    if (new_data.length > 0) {
-        logger.info(`Adding ${new_data.length} new row(s) to the dataset.`);
-        // Concatenate new data, ensuring dates are handled as Date objects
-        df = df.concat(new_data);
-
-        // Sort the data by date to ensure correct order
-        df.sort((a, b) => a.date.getTime() - b.date.getTime());
-
-        // Format dates to YYYY-MM-DD for CSV
-        const csvData = df.map(row => ({
-            date: row.date.toISOString().split('T')[0],
-            price: row.price
-        }));
-
-        try {
-            const csvString = await new Promise((resolve, reject) => {
-                stringify(csvData, { header: true }, (err, data) => {
-                    if (err) reject(err);
-                    resolve(data);
-                });
-            });
-            await fs.writeFile(CSV_PATH, csvString);
-            logger.info(`Successfully updated ${CSV_PATH}.`);
-        } catch (error) {
-            logger.error(`FATAL: Failed to write to ${CSV_PATH}: ${error.message}`);
-            process.exit(1);
-        }
-    } else {
-        logger.info("No new data to add. CSV is already up-to-date.");
-    }
-
-    // --- Step 6: ALWAYS regenerate the JSON file ---
-    try {
-        logger.info(`Regenerating ${JSON_PATH}...`);
-        // Ensure date column is string in YYYY-MM-DD format for JSON
-        const jsonData = df.map(row => ({
-            date: row.date.toISOString().split('T')[0],
-            price: row.price
-        }));
-        await fs.writeFile(JSON_PATH, JSON.stringify(jsonData, null, 2));
-        logger.info(`Successfully regenerated ${JSON_PATH}.`);
-    } catch (error) {
-        logger.error(`FATAL: An unexpected error occurred during JSON generation: ${error.message}`);
-        process.exit(1);
-    }
-
-    logger.info("Script finished successfully.");
+    const failed = results.filter(r => !r.ok);
+    logger.info(`Done: ${results.filter(r => r.ok).length} ok, ${failed.length} failed, `
+              + `rows added: ${results.reduce((n, r) => n + (r.added || 0), 0)}`);
+    if (failed.length) process.exit(1);
 }
 
-// Run the main function
 if (require.main === module) {
-    main();
+    main().catch(err => { logger.error(`FATAL: ${err.stack || err.message}`); process.exit(1); });
 }
