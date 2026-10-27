@@ -14,6 +14,13 @@
  *
  * Exits non-zero if a coin ends up more than MAX_STALE_DAYS behind — a frozen
  * series should break the build, not sit there quietly serving old prices.
+ *
+ * It also refuses to append across a long outage, and refuses to leave a hole
+ * behind. Both refusals exist because this job measures freshness by the newest
+ * row: a day missing from the middle is invisible to it forever, and a day the
+ * site cannot price shows as N/A with no explanation. Filling a hole is
+ * deliberate work for fetch-history.js or sync-history.js --fix, so the only
+ * thing this job can usefully do about one is fail loudly.
  */
 
 const path = require('path');
@@ -47,9 +54,25 @@ async function updateCoin(coin) {
         return { coin, ok: false };
     }
 
+    // Checked before anything else and again after appending, because a hole can
+    // predate this run or be opened by it — a single day no provider served.
+    // Either way it is checked on every path out of here, including the fresh
+    // one: a series can be current to yesterday and still be missing March.
+    const holeFailure = (map, where) => {
+        const holes = store.gaps(map);
+        if (!holes.length) return null;
+        logger.error(`${coin}: ${holes.length} day${holes.length === 1 ? '' : 's'} missing inside the covered range `
+                   + `(${holes.slice(0, 5).join(', ')}${holes.length > 5 ? ', …' : ''}). `
+                   + `A daily append never looks back — run: node .scripts/sync-history.js ${coin} --fix`);
+        return { coin, ok: false, added: 0, last: where };
+    };
+
     const last = [...byDate.keys()].sort().at(-1);
     // Yesterday UTC is the newest day any of these providers can have closed.
     const target = addDays(today(), -1);
+
+    const preexisting = holeFailure(byDate, last);
+    if (preexisting) return preexisting;
 
     const missing = [];
     for (let d = addDays(last, 1); d <= target; d = addDays(d, 1)) missing.push(d);
@@ -58,10 +81,14 @@ async function updateCoin(coin) {
         logger.info(`${coin}: already current (last day ${last})`);
         return { coin, ok: true, added: 0, last };
     }
+    // Appending only the tail of a long outage would bury the rest: the next run
+    // starts from the newest row and never looks back, so those days would stay
+    // missing for good while the series reported itself fresh.
     if (missing.length > MAX_BACKFILL_DAYS) {
-        logger.warn(`${coin}: missing ${missing.length} days — more than a daily update. `
-                  + `Taking the last ${MAX_BACKFILL_DAYS} only; the rest is a job for fetch-history.js`);
-        missing.splice(0, missing.length - MAX_BACKFILL_DAYS);
+        logger.error(`${coin}: missing ${missing.length} days (${missing[0]} … ${missing.at(-1)}), `
+                   + `more than the ${MAX_BACKFILL_DAYS}-day limit for a daily append. `
+                   + `Refusing to append a partial tail — run: node .scripts/fetch-history.js ${coin}`);
+        return { coin, ok: false, added: 0, last };
     }
 
     let added = 0;
@@ -84,6 +111,9 @@ async function updateCoin(coin) {
         const rows = await store.save(coin, byDate);
         logger.info(`${coin}: wrote ${rows.length} rows, newest ${newest}`);
     }
+
+    const opened = holeFailure(byDate, newest);
+    if (opened) return { ...opened, added };
 
     if (ageDays > MAX_STALE_DAYS) {
         logger.error(`${coin}: newest row ${newest} is ${ageDays} days old (limit ${MAX_STALE_DAYS}). `
