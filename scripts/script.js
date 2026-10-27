@@ -60,19 +60,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     let currentMode = 'lump';
     let tradeTab = 'buy';
 
+    const AMOUNT_MIN = 1, AMOUNT_MAX = 1_000_000_000;
+
+    // Month/day the user last asked for. The sliders always show a value clamped
+    // to what the calendar and the dataset allow, but the request is remembered:
+    // pick JAN 31, switch to FEB (shows 28), switch back to MAR — 31 comes back.
+    const desiredBuy  = { month: null, day: null };
+    const desiredSell = { month: null, day: null };
+
     const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
     let priceData = new Map();
     let START_DATE, END_DATE, CURRENT_PRICE, CURRENT_DATE;
 
     const NOTABLE_DATES = [
-        { label: 'Pizza Day',   date: '2010-05-22', title: 'Bitcoin Pizza Day — 10,000 BTC for 2 pizzas' },
-        { label: '$1 BTC',      date: '2011-02-09', title: 'Bitcoin first reached $1' },
-        { label: '$100 BTC',    date: '2013-04-01', title: 'Bitcoin first crossed $100' },
-        { label: '$1K BTC',     date: '2013-11-27', title: 'Bitcoin first crossed $1,000' },
-        { label: '2017 ATH',    date: '2017-12-17', title: 'Bitcoin ATH at $19,783' },
-        { label: 'COVID Crash', date: '2020-03-16', title: 'COVID crash bottom — $3,867' },
-        { label: '$69K ATH',    date: '2021-11-10', title: 'All-time high — $69,000' },
-        { label: 'FTX Crash',   date: '2022-11-08', title: 'FTX collapse — price down to $19K' },
+        // Every price below is the price this dataset holds for that exact date,
+        // and every date is the actual extreme it claims to be. Both are checked
+        // against dates/history-btc.json, not written by hand.
+        { label: 'Pizza Day',     date: '2010-05-22', title: 'Bitcoin Pizza Day — 10,000 BTC for 2 pizzas' },
+        { label: '$1K BTC',       date: '2013-11-28', title: 'Bitcoin first crossed $1,000 — $1,007' },
+        { label: '2017 ATH',      date: '2017-12-16', title: 'Peak of the 2017 run — $19,641' },
+        { label: 'COVID Crash',   date: '2020-03-12', title: 'COVID crash bottom — $4,959' },
+        { label: '2021 ATH',      date: '2021-11-08', title: 'Peak of the 2021 run — $67,542' },
+        { label: 'FTX Crash',     date: '2022-11-08', title: 'FTX collapse — down to $18,521' },
+        { label: '$100K BTC',     date: '2024-12-08', title: 'Bitcoin first crossed $100,000 — $100,799' },
+        { label: 'All-Time High', date: '2025-10-06', title: 'The highest daily price so far — $124,824' },
+        { label: '2026 Low',      date: '2026-06-30', title: 'Lowest daily price of 2026 — $58,525' },
     ];
 
     const CONTEXT_CAPTIONS = [
@@ -114,8 +126,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             subtitle: 'Laszlo paid 10,000 BTC for 2 pizzas. $41 face value. What if he kept them?'
         },
         'covid-dip': {
-            date: '2020-03-16', amount: 100,
-            subtitle: 'March 2020 — the world was shutting down. Bitcoin hit $3,867. What if you bought the fear?'
+            date: '2020-03-12', amount: 100,
+            subtitle: 'March 2020 — the world was shutting down. Bitcoin hit $4,959. What if you bought the fear?'
         },
         'halving-2020': {
             date: '2020-05-11', amount: 100,
@@ -130,8 +142,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             subtitle: 'FTX collapsed. SBF lied. Bitcoin kept going. It always does.'
         },
         'ath-2021': {
-            date: '2021-11-10', amount: 100,
-            subtitle: '$69,000. The peak. Everyone said $100K was next. Then it wasn\'t.'
+            date: '2021-11-08', amount: 100,
+            subtitle: '$67,542. The peak. Everyone said $100K was next. Then it wasn\'t.'
         },
         'genesis': {
             date: '2009-01-12', amount: 100,
@@ -180,8 +192,65 @@ document.addEventListener('DOMContentLoaded', async () => {
         { id: 'sol', name: 'SOL', address: 'HfXLFRBZkEkqig6pZRzXactNJBoHY1qHrTCRU3Q2ZBT8' },
     ];
 
+    // --- Dates: one source of truth for what is selectable ---
+    // Every path into the UI (sliders, URL, localStorage, pills, campaigns) goes
+    // through these, so an impossible date like FEB 31 cannot be produced at all.
+
+    const pad = n => String(n).padStart(2, '0');
+    const dateKey = (y, m, d) => `${y}-${pad(m)}-${pad(d)}`;
+    const daysInMonth = (year, month) => new Date(year, month, 0).getDate();
+    const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
+
+    // Months of `year` that exist in the dataset.
+    function getValidMonthRange(year) {
+        return {
+            min: year === START_DATE.getFullYear() ? START_DATE.getMonth() + 1 : 1,
+            max: year === END_DATE.getFullYear()   ? END_DATE.getMonth() + 1   : 12,
+        };
+    }
+
+    // Days of `year`/`month` that exist both in the calendar and in the dataset.
+    function getValidDayRange(year, month) {
+        const first = year === START_DATE.getFullYear() && month === START_DATE.getMonth() + 1;
+        const last  = year === END_DATE.getFullYear()   && month === END_DATE.getMonth() + 1;
+        return {
+            min: first ? START_DATE.getDate() : 1,
+            max: last  ? END_DATE.getDate()   : daysInMonth(year, month),
+        };
+    }
+
+    // Pull a slider into its valid window, remembering what was asked for.
+    function clampDateSliders(yearSl, monthSl, daySl, desired, floor = null) {
+        const year = clamp(+yearSl.value, +yearSl.min, +yearSl.max);
+        yearSl.value = year;
+
+        const mr = getValidMonthRange(year);
+        if (floor && year === floor.year) mr.min = Math.max(mr.min, floor.month);
+        const month = clamp(desired.month ?? +monthSl.value, mr.min, mr.max);
+        monthSl.value = month;
+
+        const dr = getValidDayRange(year, month);
+        if (floor && year === floor.year && month === floor.month) dr.min = Math.max(dr.min, floor.day);
+        const day = clamp(desired.day ?? +daySl.value, dr.min, dr.max);
+        daySl.value = day;
+
+        return { year, month, day, monthRange: mr, dayRange: dr };
+    }
+
+    // Records what was asked for; nonsense is dropped rather than stored.
+    function setDesired(target, field, value) {
+        const hi = field === 'month' ? 12 : 31;
+        if (Number.isFinite(value)) target[field] = clamp(Math.round(value), 1, hi);
+    }
+
+    function isDateInData(y, m, d) {
+        if (!Number.isInteger(y) || !Number.isInteger(m) || !Number.isInteger(d)) return false;
+        if (m < 1 || m > 12 || d < 1 || d > daysInMonth(y, m)) return false;
+        return priceData.has(dateKey(y, m, d));
+    }
+
     function formatLargeNumber(num) {
-        if (num == null || isNaN(num)) return 'N/A';
+        if (num == null || isNaN(num) || !isFinite(num)) return 'N/A';
         if (num < 1_000)             return num.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
         if (num < 1_000_000)         return '$' + (num / 1_000).toFixed(2) + 'K';
         if (num < 1_000_000_000)     return '$' + (num / 1_000_000).toFixed(2) + 'M';
@@ -232,16 +301,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             const raw = localStorage.getItem('whatifbtc_state');
             if (!raw) return false;
             const s = JSON.parse(raw);
-            if (s.year)   yearSlider.value  = s.year;
-            if (s.month)  monthSlider.value = s.month;
-            if (s.day)    daySlider.value   = s.day;
+            // Saved state is not trusted: older versions could store an
+            // impossible date such as FEB 31. Out-of-range values are moved
+            // into range silently — nobody remembers what they picked last month.
+            if (s.year)  yearSlider.value = clamp(+s.year, +yearSlider.min, +yearSlider.max);
+            if (s.month) setDesired(desiredBuy, 'month', +s.month);
+            if (s.day)   setDesired(desiredBuy, 'day',   +s.day);
             if (s.amount && +s.amount > 0) {
-                investmentAmount = +s.amount;
-                if (investmentInput) investmentInput.value = (+s.amount).toFixed(2);
+                investmentAmount = clamp(+s.amount, AMOUNT_MIN, AMOUNT_MAX);
+                if (investmentInput) investmentInput.value = investmentAmount.toFixed(2);
             }
-            if (s.sellYear  && sellYearSlider)  sellYearSlider.value  = s.sellYear;
-            if (s.sellMonth && sellMonthSlider) sellMonthSlider.value = s.sellMonth;
-            if (s.sellDay   && sellDaySlider)   sellDaySlider.value   = s.sellDay;
+            if (s.sellYear  && sellYearSlider)  sellYearSlider.value = clamp(+s.sellYear, +sellYearSlider.min, +sellYearSlider.max);
+            if (s.sellMonth) setDesired(desiredSell, 'month', +s.sellMonth);
+            if (s.sellDay)   setDesired(desiredSell, 'day',   +s.sellDay);
             if (s.mode && ['lump','dca','trade'].includes(s.mode)) setMode(s.mode, true);
             return true;
         } catch(e) { return false; }
@@ -260,14 +332,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         setTimeout(hide, 6000);
     }
 
+    // Screen readers are told the answer, but only once the user stops dragging —
+    // announcing every intermediate value makes the slider unusable.
+    let announceTimer = null;
+    function announceResult(text) {
+        const el = document.getElementById('result-announcer');
+        if (!el) return;
+        clearTimeout(announceTimer);
+        announceTimer = setTimeout(() => { el.textContent = text; }, 600);
+    }
+
     function updateUI() {
-        const year  = +yearSlider.value;
-        const month = +monthSlider.value;
-        const day   = +daySlider.value;
+        const buy = clampDateSliders(yearSlider, monthSlider, daySlider, desiredBuy);
+        const year = buy.year, month = buy.month, day = buy.day;
 
         updateSliderFill(yearSlider,  yearTrackBg);
-        updateSliderFill(monthSlider, monthTrackBg, true);
-        updateSliderFill(daySlider,   dayTrackBg);
+        updateSliderFill(monthSlider, monthTrackBg, 'var(--accent-color)', buy.monthRange);
+        updateSliderFill(daySlider,   dayTrackBg,   'var(--accent-color)', buy.dayRange);
 
         yearValueDisplay.textContent = year;
         monthNameDisplay.textContent = MONTHS[month - 1];
@@ -292,28 +373,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             growth = totalInvested > 0 ? (currentValue - totalInvested) * 100 / totalInvested : 0;
             renderDCAChart(year, month, day);
 
-        } else if (currentMode === 'trade') {
-            if (sellYearSlider) {
-                sellYearSlider.min = year;
-                if (+sellYearSlider.value < year) sellYearSlider.value = year;
-                if (sellYearMinLabel) sellYearMinLabel.textContent = year;
-            }
-            const sellYear = +sellYearSlider.value;
+        } else if (currentMode === 'trade' && sellYearSlider && sellMonthSlider && sellDaySlider) {
+            sellYearSlider.min = year;
+            if (sellYearMinLabel) sellYearMinLabel.textContent = year;
 
-            if (sellMonthSlider && sellYear === year && +sellMonthSlider.value < month) {
-                sellMonthSlider.value = month;
-            }
-            const sellMonth = +sellMonthSlider.value;
-
-            if (sellDaySlider && sellYear === year && sellMonth === month && +sellDaySlider.value < day) {
-                sellDaySlider.value = day;
-            }
-            const sellDay   = sellDaySlider ? +sellDaySlider.value : 1;
+            // The sell date can never precede the buy date, and like the buy date
+            // it is confined to days that exist in the calendar and in the data.
+            const sell = clampDateSliders(
+                sellYearSlider, sellMonthSlider, sellDaySlider, desiredSell,
+                { year, month, day }
+            );
+            const sellYear = sell.year, sellMonth = sell.month, sellDay = sell.day;
             const sellPrice = getPriceOnDay(sellYear, sellMonth, sellDay);
 
-            updateSliderFill(sellYearSlider,  sellYearTrackBg,  false, null,          '#60a5fa');
-            updateSliderFill(sellMonthSlider, sellMonthTrackBg, true,  sellYearSlider, '#60a5fa');
-            if (sellDaySlider && sellDayTrackBg) updateSliderFill(sellDaySlider, sellDayTrackBg, false, null, '#60a5fa');
+            updateSliderFill(sellYearSlider,  sellYearTrackBg,  '#60a5fa');
+            updateSliderFill(sellMonthSlider, sellMonthTrackBg, '#60a5fa', sell.monthRange);
+            if (sellDayTrackBg) updateSliderFill(sellDaySlider, sellDayTrackBg, '#60a5fa', sell.dayRange);
 
             if (sellYearValueDisplay)  sellYearValueDisplay.textContent  = sellYear;
             if (sellMonthNameDisplay)  sellMonthNameDisplay.textContent  = MONTHS[sellMonth - 1];
@@ -360,25 +435,34 @@ document.addEventListener('DOMContentLoaded', async () => {
             contextCaptionEl.textContent = caption || '';
         }
 
+        const spokenDate = selectedDateEl ? selectedDateEl.textContent : dateString;
+        const spokenSum  = initialInvestmentEl.textContent;
+        announceResult(
+            currentMode === 'trade'
+                ? `${spokenSum} bought ${spokenDate}, sold ${sellDateDisplayEl?.textContent || ''}: ${formattedVal}.`
+                : currentMode === 'dca'
+                    ? `${spokenSum} invested monthly since ${spokenDate}: ${formattedVal} today.`
+                    : `${spokenSum} invested on ${spokenDate}: ${formattedVal} today.`
+        );
+
         updateActivePill();
 
     }
 
-    function updateSliderFill(slider, trackBg, isMonth = false, yearRef = null, fillColor = 'var(--accent-color)') {
+    // `validRange` dims the part of the track that cannot be selected — short
+    // months, and the edges of the dataset — while the scale itself stays put,
+    // so the thumb never rescales and the connector curve never jumps.
+    function updateSliderFill(slider, trackBg, fillColor = 'var(--accent-color)', validRange = null) {
         const min = +slider.min, max = +slider.max, val = +slider.value;
-        const pct = max > min ? (val - min) * 100 / (max - min) : 100;
+        const span = max - min;
+        const pct = span > 0 ? (val - min) * 100 / span : 100;
         const active = '#333842', disabled = '#22252a';
 
-        if (isMonth) {
-            const year   = yearRef ? +yearRef.value : +yearSlider.value;
-            const SY = START_DATE.getFullYear(), SM = START_DATE.getMonth() + 1;
-            const EY = END_DATE.getFullYear(),   EM = END_DATE.getMonth() + 1;
-            const vStart = (year === SY) ? SM : 1;
-            const vEnd   = (year === EY) ? EM : 12;
-            const startPct = (vStart - 1) * 100 / 11;
-            const endPct   = (vEnd - 12) * 100 / 11;
+        if (validRange && span > 0) {
+            const startPct = clamp((validRange.min - min) * 100 / span, 0, 100);
+            const endPct   = clamp((validRange.max - min) * 100 / span, 0, 100);
             trackBg.style.background =
-                `linear-gradient(to right, ${disabled} ${startPct}%, ${active} ${startPct}%, ${active} calc(100% + ${endPct}%), ${disabled} calc(100% + ${endPct}%))`;
+                `linear-gradient(to right, ${disabled} ${startPct}%, ${active} ${startPct}%, ${active} ${endPct}%, ${disabled} ${endPct}%)`;
         } else {
             trackBg.style.background = active;
         }
@@ -462,24 +546,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         syncRightPanelHeight();
     }
 
-    function getPriceForMonth(year, month) {
-        for (let d = 1; d <= 7; d++) {
-            const key = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-            const price = priceData.get(key);
-            if (price) return price;
-        }
-        return 0;
-    }
-
+    // A contribution on the 31st falls on the 28th/29th/30th in shorter months,
+    // the way a real standing order does. Dates outside the dataset return 0 and
+    // are skipped by the callers — including the current month, whose
+    // contribution day has not arrived yet.
     function getPriceOnDay(year, month, day) {
-        for (let offset = 0; offset <= 2; offset++) {
-            const d = day + offset;
-            if (d > 31) break;
-            const key = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-            const price = priceData.get(key);
-            if (price) return price;
-        }
-        return 0;
+        const d = Math.min(day, daysInMonth(year, month));
+        return priceData.get(dateKey(year, month, d)) || 0;
     }
 
     function calculateDCA(startYear, startMonth, startDay) {
@@ -488,7 +561,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const endMonth = END_DATE.getMonth() + 1;
         let y = startYear, m = startMonth;
         while (y < endYear || (y === endYear && m <= endMonth)) {
-            const price = startDay ? getPriceOnDay(y, m, startDay) : getPriceForMonth(y, m);
+            const price = getPriceOnDay(y, m, startDay);
             if (price > 0) { totalBtc += investmentAmount / price; months++; }
             if (++m > 12) { m = 1; y++; }
         }
@@ -505,10 +578,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             btn.title        = nd.title;
             btn.dataset.date = nd.date;
             btn.addEventListener('click', () => {
-                const [y, m, d] = nd.date.split('-').map(Number);
-                yearSlider.value  = y;
-                monthSlider.value = m;
-                daySlider.value   = d;
+                applyDateParam(nd.date, yearSlider, desiredBuy);
                 updateAll();
             });
             notableDatesEl.appendChild(btn);
@@ -540,7 +610,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function loadPriceData() {
         try {
-            const res  = await fetch('dates/history.json');
+            const res  = await fetch('dates/history-btc.json');
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
             priceData     = new Map(data.map(i => [i.date, i.price]));
@@ -551,32 +621,46 @@ document.addEventListener('DOMContentLoaded', async () => {
             return true;
         } catch (err) {
             console.error(err);
-            loadingOverlay.innerHTML = '<p class="text-xl text-red-500">Failed to load data.</p>';
+            // Without the price data there is no product at all, so the dead end
+            // at least offers a way out.
+            loadingOverlay.innerHTML =
+                '<div class="text-center">' +
+                '<p class="text-xl text-red-500">Failed to load price data.</p>' +
+                '<button id="retry-load" class="retry-btn">Try again</button>' +
+                '</div>';
+            document.getElementById('retry-load')?.addEventListener('click', () => window.location.reload());
             return false;
         }
+    }
+
+    // Accepts a date only if it is a real calendar date that the dataset covers;
+    // anything else leaves the current selection alone.
+    function applyDateParam(value, yearSl, desired) {
+        if (!value || !yearSl || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+        const [y, m, d] = value.split('-').map(Number);
+        if (!isDateInData(y, m, d)) return false;
+        yearSl.value = y;
+        setDesired(desired, 'month', m);
+        setDesired(desired, 'day',   d);
+        return true;
     }
 
     function applyUrlParameters() {
         const params      = new URLSearchParams(window.location.search);
         const amountParam = parseFloat(params.get('amount'));
-        if (!isNaN(amountParam) && amountParam > 0) {
-            investmentAmount = amountParam;
-            if (investmentInput) investmentInput.value = amountParam.toFixed(2);
+        if (isFinite(amountParam) && amountParam > 0) {
+            investmentAmount = clamp(amountParam, AMOUNT_MIN, AMOUNT_MAX);
+            if (investmentInput) investmentInput.value = investmentAmount.toFixed(2);
         }
-        const dateParam = params.get('date');
-        if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
-            const [y, m, d] = dateParam.split('-').map(Number);
-            if (new Date(y, m - 1, d) >= START_DATE) {
-                yearSlider.value  = y;
-                monthSlider.value = m;
-                daySlider.value   = d;
-            }
-        }
+        applyDateParam(params.get('date'), yearSlider, desiredBuy);
+        // `sell` is written as YYYY-MM-DD; links shared before that carried only
+        // YYYY-MM, and for those the 1st is assumed rather than whatever day
+        // happened to be lying around in this browser.
         const sellParam = params.get('sell');
         if (sellParam && /^\d{4}-\d{2}$/.test(sellParam)) {
-            const [sy, sm] = sellParam.split('-').map(Number);
-            if (sellYearSlider)  sellYearSlider.value  = Math.min(Math.max(sy, START_DATE.getFullYear()), END_DATE.getFullYear());
-            if (sellMonthSlider) sellMonthSlider.value = Math.min(Math.max(sm, 1), 12);
+            applyDateParam(`${sellParam}-01`, sellYearSlider, desiredSell);
+        } else {
+            applyDateParam(sellParam, sellYearSlider, desiredSell);
         }
         const modeParam = params.get('mode');
         if (modeParam && ['lump', 'dca', 'trade'].includes(modeParam)) {
@@ -588,14 +672,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (preset) {
                 if (preset.subtitle && subtitle) subtitle.textContent = preset.subtitle;
                 if (preset.amount && !params.has('amount')) {
-                    investmentAmount = preset.amount;
-                    if (investmentInput) investmentInput.value = preset.amount.toFixed(2);
+                    investmentAmount = clamp(preset.amount, AMOUNT_MIN, AMOUNT_MAX);
+                    if (investmentInput) investmentInput.value = investmentAmount.toFixed(2);
                 }
                 if (preset.date && !params.has('date')) {
-                    const [py, pm, pd] = preset.date.split('-').map(Number);
-                    yearSlider.value  = py;
-                    monthSlider.value = pm;
-                    daySlider.value   = pd;
+                    applyDateParam(preset.date, yearSlider, desiredBuy);
                 }
                 if (preset.mode && !params.has('mode')) setMode(preset.mode, true);
             }
@@ -679,7 +760,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         let y = startYear, m = startMonth;
 
         while (y < endYear || (y === endYear && m <= endMonth)) {
-            const price = startDay ? getPriceOnDay(y, m, startDay) : getPriceForMonth(y, m);
+            const price = getPriceOnDay(y, m, startDay);
             if (price > 0) {
                 runBtc      += investmentAmount / price;
                 runInvested += investmentAmount;
@@ -744,10 +825,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     function buildShareUrl() {
         const params = new URLSearchParams();
         params.set('amount', investmentAmount);
-        params.set('date', `${yearSlider.value}-${String(+monthSlider.value).padStart(2,'0')}-${String(+daySlider.value).padStart(2,'0')}`);
+        params.set('date', dateKey(+yearSlider.value, +monthSlider.value, +daySlider.value));
         params.set('mode', currentMode);
-        if (currentMode === 'trade' && sellYearSlider && sellMonthSlider) {
-            params.set('sell', `${sellYearSlider.value}-${String(+sellMonthSlider.value).padStart(2,'0')}`);
+        if (currentMode === 'trade' && sellYearSlider && sellMonthSlider && sellDaySlider) {
+            // Full date: with only year and month the recipient's own leftover
+            // day was used, so the same link showed two different results.
+            params.set('sell', dateKey(+sellYearSlider.value, +sellMonthSlider.value, +sellDaySlider.value));
         }
         return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
     }
@@ -821,10 +904,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         saveState();
     }
 
-    [yearSlider, monthSlider, daySlider].forEach(sl => sl.addEventListener('input', updateAll));
+    // The raw slider position is what the user asked for; updateAll() then shows
+    // the nearest day that actually exists. Dragging into the dimmed tail of a
+    // short month therefore snaps back, but is not forgotten.
+    yearSlider.addEventListener('input', updateAll);
+    monthSlider.addEventListener('input', () => { setDesired(desiredBuy, 'month', +monthSlider.value); updateAll(); });
+    daySlider.addEventListener('input',   () => { setDesired(desiredBuy, 'day',   +daySlider.value);   updateAll(); });
     if (sellYearSlider)  sellYearSlider.addEventListener('input',  updateAll);
-    if (sellMonthSlider) sellMonthSlider.addEventListener('input', updateAll);
-    if (sellDaySlider)   sellDaySlider.addEventListener('input',   updateAll);
+    if (sellMonthSlider) sellMonthSlider.addEventListener('input', () => { setDesired(desiredSell, 'month', +sellMonthSlider.value); updateAll(); });
+    if (sellDaySlider)   sellDaySlider.addEventListener('input',   () => { setDesired(desiredSell, 'day',   +sellDaySlider.value);   updateAll(); });
 
     document.querySelectorAll('.trade-tab-btn').forEach(btn =>
         btn.addEventListener('click', () => setTradeTab(btn.dataset.tab))
@@ -842,19 +930,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (investmentInput) {
         investmentInput.addEventListener('input', () => {
             const v = parseFloat(investmentInput.value);
-            if (!isNaN(v) && v > 0) { investmentAmount = v; updateAll(); }
+            if (isFinite(v) && v > 0) { investmentAmount = clamp(v, AMOUNT_MIN, AMOUNT_MAX); updateAll(); }
         });
+        // Mid-typing the field may be empty or out of range; on the way out it
+        // is brought back in line with the number actually being calculated.
+        const normalize = () => { investmentInput.value = investmentAmount.toFixed(2); };
+        investmentInput.addEventListener('blur', normalize);
+        investmentInput.addEventListener('change', normalize);
     }
     if (decreaseBtn) {
         decreaseBtn.addEventListener('click', () => {
-            investmentAmount = Math.max(0.01, investmentAmount - 1);
+            investmentAmount = Math.max(AMOUNT_MIN, investmentAmount - 1);
             investmentInput.value = investmentAmount.toFixed(2);
             updateAll();
         });
     }
     if (increaseBtn) {
         increaseBtn.addEventListener('click', () => {
-            investmentAmount += 1;
+            investmentAmount = Math.min(AMOUNT_MAX, investmentAmount + 1);
             investmentInput.value = investmentAmount.toFixed(2);
             updateAll();
         });
@@ -876,22 +969,61 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    let lastFocusBeforeModal = null;
+
+    function isModalOpen() {
+        return donateModalEl && !donateModalEl.classList.contains('hidden');
+    }
+
     function openDonateModal() {
+        lastFocusBeforeModal = document.activeElement;
         donateModalEl.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
+        // aria-modal="true" promises the rest of the page is unreachable; inert
+        // is what keeps that promise. Everything beside the modal is covered —
+        // the cookie banner and the storage toast live outside #app-container.
+        [...document.body.children].forEach(el => {
+            if (el !== donateModalEl && !el.hasAttribute('inert')) {
+                el.setAttribute('inert', '');
+                el.dataset.inertedByModal = '1';
+            }
+        });
         renderDonateQR('btc');
+        (donateModalClose || donateModalEl.querySelector(FOCUSABLE))?.focus();
     }
 
     function closeDonateModal() {
         donateModalEl.classList.add('hidden');
         document.body.style.overflow = '';
+        document.querySelectorAll('[data-inerted-by-modal]').forEach(el => {
+            el.removeAttribute('inert');
+            delete el.dataset.inertedByModal;
+        });
+        const back = lastFocusBeforeModal?.isConnected && lastFocusBeforeModal !== document.body
+            ? lastFocusBeforeModal
+            : donateBtnEl;
+        back?.focus();
+        lastFocusBeforeModal = null;
+    }
+
+    function trapModalTab(e) {
+        const items = [...donateModalEl.querySelectorAll(FOCUSABLE)].filter(el => el.offsetParent !== null);
+        if (!items.length) return;
+        const first = items[0], last = items[items.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
     }
 
     if (donateBtnEl && donateModalEl) {
         donateBtnEl.addEventListener('click', openDonateModal);
         donateModalClose.addEventListener('click', closeDonateModal);
         donateModalEl.querySelector('.donate-modal-backdrop').addEventListener('click', closeDonateModal);
-        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDonateModal(); });
+        document.addEventListener('keydown', e => {
+            if (!isModalOpen()) return;
+            if (e.key === 'Escape') closeDonateModal();
+            else if (e.key === 'Tab') trapModalTab(e);
+        });
     }
 
     buildDonateModal();
@@ -906,10 +1038,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     document.querySelectorAll('.donate-copy-btn').forEach(btn => {
+        const label = btn.textContent;
         btn.addEventListener('click', () => {
             copyToClipboard(btn.dataset.address, null, '');
             btn.textContent = 'Copied!';
-            setTimeout(() => btn.textContent = 'Copy', 2000);
+            setTimeout(() => { btn.textContent = label; }, 2000);
         });
     });
 

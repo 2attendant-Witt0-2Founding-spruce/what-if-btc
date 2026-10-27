@@ -38,7 +38,7 @@
           "description": "Bitcoin historical investment calculator. Find out how much your investment would be worth today.",
           "applicationCategory": "FinanceApplication",
           "operatingSystem": "Web",
-          "inLanguage": ["en", "zh"],
+          "inLanguage": "en",
           "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
         },
         {
@@ -88,6 +88,10 @@
     <!-- Plausible Analytics (privacy-friendly, no cookie banner needed) -->
     <script defer data-domain="whatifbtc.com" src="https://plausible.io/js/script.js"></script>
 
+    <!-- Machine-readable summary for AI assistants. Not a registered rel value;
+         a crawler that ignores robots.txt and sitemap.xml may still find it here. -->
+    <link rel="alternate" type="text/markdown" href="/llms.txt" title="llms.txt — summary for AI assistants">
+
     <!-- Fonts -->
     <link rel="preload" href="fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="fonts/roboto-mono-latin.woff2" as="font" type="font/woff2" crossorigin>
@@ -113,7 +117,7 @@
                     <span id="investment-prefix">If you had invested</span>
                     <div id="investment-edit" class="investment-input-wrapper">
                         <button class="investment-btn" id="decrease-investment">-</button>
-                        <input type="number" id="investment-input" class="investment-input" value="100" min="1">
+                        <input type="number" id="investment-input" class="investment-input" value="100" min="1" max="1000000000" step="1" aria-label="Investment amount in US dollars">
                         <button class="investment-btn" id="increase-investment">+</button>
                     </div>
                     <span id="investment-suffix" class="text-gray-400 hidden">/ mo</span>
@@ -145,7 +149,7 @@
                 </div>
 
                 <div id="trade-tabs" class="hidden">
-                    <div class="flex items-center gap-3">
+                    <div class="flex flex-wrap items-center gap-3">
                         <button class="trade-tab-btn active" data-tab="buy">
                             <span class="tab-dot-buy">●</span>
                             <span>Bought</span>
@@ -197,6 +201,7 @@
                                     <span>Day</span>
                                     <span id="day-value-display" class="block font-bold text-base accent-color"></span>
                                 </div>
+                                <span>31</span>
                             </div>
                             <div class="relative">
                                 <div id="day-track-bg" class="slider-track-bg"></div>
@@ -241,6 +246,7 @@
                                     <span>Day</span>
                                     <span id="sell-day-value-display" class="block font-bold text-base"></span>
                                 </div>
+                                <span>31</span>
                             </div>
                             <div class="relative">
                                 <div id="sell-day-track-bg" class="slider-track-bg"></div>
@@ -274,6 +280,7 @@
                         <p id="context-caption" class="context-caption"></p>
                         <p id="trade-disclaimer" class="hidden text-xs text-gray-600 italic mt-1">* fees not included</p>
                         <p class="result-disclaimer">For educational purposes only. Not financial advice.</p>
+                        <p id="result-announcer" class="sr-only" role="status" aria-live="polite"></p>
                     </div>
                     <div class="relative z-10 mt-6 flex items-center gap-3">
                         <button class="share-btn text-xs font-roboto-mono text-gray-500 hover:text-gray-300 transition-colors"><span class="share-arrow">↗</span> Share</button>
