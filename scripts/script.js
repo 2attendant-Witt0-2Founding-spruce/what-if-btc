@@ -282,15 +282,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function saveState() {
         try {
+            // What the user asked for is saved, not what the sliders currently
+            // show. Two things go wrong otherwise. A day clamped for a short
+            // month comes back clamped: pick JAN 31, pass through FEB, reload,
+            // and 31 is gone for good. Worse, the sell sliders are only
+            // reconciled while the trade tab is open — in lump and DCA mode they
+            // sit at their initial values, so saving them overwrites a real sell
+            // date with the last day of the dataset.
             localStorage.setItem('whatifbtc_state', JSON.stringify({
                 mode:      currentMode,
                 year:      yearSlider.value,
-                month:     monthSlider.value,
-                day:       daySlider.value,
+                month:     desiredBuy.month  ?? monthSlider.value,
+                day:       desiredBuy.day    ?? daySlider.value,
                 amount:    investmentAmount,
                 sellYear:  sellYearSlider?.value,
-                sellMonth: sellMonthSlider?.value,
-                sellDay:   sellDaySlider?.value,
+                sellMonth: desiredSell.month ?? sellMonthSlider?.value,
+                sellDay:   desiredSell.day   ?? sellDaySlider?.value,
             }));
             if (!localStorage.getItem('whatifbtc_consent')) showStorageToast();
         } catch(e) {}
